@@ -175,6 +175,11 @@ func (srv *Server) HandleTLSConnection(conn net.Conn) bool {
 	JA3Data := tls.CalculateJA3(parsedClientHello)
 	peetfp, peetprintHash := tls.CalculatePeetPrint(parsedClientHello, JA3Data)
 
+	// Calculate JA4 directly from ClientHello (improved method)
+	negotiatedVersion := fmt.Sprintf("%v", conn.(*utls.Conn).ConnectionState().Version)
+	ja4 := tls.CalculateJa4Direct(parsedClientHello, negotiatedVersion)
+	ja4_r := tls.CalculateJa4Direct_r(parsedClientHello, negotiatedVersion)
+
 	// Convert raw bytes to hex and base64
 	rawBytes, _ := hex.DecodeString(hs)
 	rawB64 := base64.StdEncoding.EncodeToString(rawBytes)
@@ -183,9 +188,11 @@ func (srv *Server) HandleTLSConnection(conn net.Conn) bool {
 		Ciphers:          JA3Data.ReadableCiphers,
 		Extensions:       parsedClientHello.Extensions,
 		RecordVersion:    JA3Data.Version,
-		NegotiatedVesion: fmt.Sprintf("%v", conn.(*utls.Conn).ConnectionState().Version),
+		NegotiatedVesion: negotiatedVersion,
 		JA3:              JA3Data.JA3,
 		JA3Hash:          JA3Data.JA3Hash,
+		JA4:              ja4,
+		JA4_r:            ja4_r,
 		PeetPrint:        peetfp,
 		PeetPrintHash:    peetprintHash,
 		SessionID:        parsedClientHello.SessionID,
@@ -212,6 +219,13 @@ func (srv *Server) HandleTLSConnection(conn net.Conn) bool {
 		details := parseHTTP1(request)
 		details.IP = conn.RemoteAddr().String()
 		details.TLS = &tlsDetails
+
+		// Calculate JA4H for HTTP/1
+		if details.Http1 != nil && details.TLS != nil {
+			details.TLS.JA4H = trackmehttp.CalculateJA4H(details.Method, details.HTTPVersion, details.Http1.Headers)
+			details.TLS.JA4H_r = trackmehttp.CalculateJA4H_r(details.Method, details.HTTPVersion, details.Http1.Headers)
+		}
+
 		srv.respondToHTTP1(conn, details)
 	}
 	return true
@@ -349,6 +363,19 @@ func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) 
 			AkamaiFingerprintHash: utils.GetMD5Hash(trackmehttp.GetAkamaiFingerprint(frames)),
 		},
 		TLS: tlsFingerprint,
+	}
+
+	// Calculate JA4H for HTTP/2
+	if resp.Http2 != nil && resp.TLS != nil {
+		// Extract headers from HTTP/2 frames
+		h2Headers := []string{}
+		for _, frame := range frames {
+			if frame.Type == "HEADERS" {
+				h2Headers = append(h2Headers, frame.Headers...)
+			}
+		}
+		resp.TLS.JA4H = trackmehttp.CalculateJA4H(resp.Method, resp.HTTPVersion, h2Headers)
+		resp.TLS.JA4H_r = trackmehttp.CalculateJA4H_r(resp.Method, resp.HTTPVersion, h2Headers)
 	}
 
 	var res []byte

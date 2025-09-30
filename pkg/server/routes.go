@@ -45,6 +45,8 @@ func apiClean(res types.Response, _ url.Values) ([]byte, string) {
 		smallRes.JA3Hash = res.TLS.JA3Hash
 		smallRes.JA4 = res.TLS.JA4
 		smallRes.JA4_r = res.TLS.JA4_r
+		smallRes.JA4H = res.TLS.JA4H
+		smallRes.JA4H_r = res.TLS.JA4H_r
 		smallRes.PeetPrint = res.TLS.PeetPrint
 		smallRes.PeetPrintHash = res.TLS.PeetPrintHash
 	}
@@ -131,6 +133,36 @@ func index(r types.Response, v url.Values) ([]byte, string) {
 	return []byte(strings.ReplaceAll(string(res), "/*DATA*/", string(data))), ct
 }
 
+func apiSearchJA4(srv *Server) func(types.Response, url.Values) ([]byte, string) {
+	return func(_ types.Response, u url.Values) ([]byte, string) {
+		if !srv.IsConnectedToDB() {
+			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
+		}
+		by := utils.GetParam("by", u)
+		if by == "" {
+			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
+		}
+		res := GetByJA4(by, srv)
+		j, _ := json.MarshalIndent(res, "", "\t")
+		return j, "application/json"
+	}
+}
+
+func apiSearchJA4H(srv *Server) func(types.Response, url.Values) ([]byte, string) {
+	return func(_ types.Response, u url.Values) ([]byte, string) {
+		if !srv.IsConnectedToDB() {
+			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
+		}
+		by := utils.GetParam("by", u)
+		if by == "" {
+			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
+		}
+		res := GetByJA4H(by, srv)
+		j, _ := json.MarshalIndent(res, "", "\t")
+		return j, "application/json"
+	}
+}
+
 func getAllPaths(srv *Server) map[string]func(types.Response, url.Values) ([]byte, string) {
 	return map[string]func(types.Response, url.Values) ([]byte, string){
 		"/":                     index,
@@ -141,6 +173,8 @@ func getAllPaths(srv *Server) map[string]func(types.Response, url.Values) ([]byt
 		"/api/raw":              apiRaw,
 		"/api/request-count":    apiRequestCount(srv),
 		"/api/search-ja3":       apiSearchJA3(srv),
+		"/api/search-ja4":       apiSearchJA4(srv),
+		"/api/search-ja4h":      apiSearchJA4H(srv),
 		"/api/search-h2":        apiSearchH2(srv),
 		"/api/search-peetprint": apiSearchPeetPrint(srv),
 		"/api/search-useragent": apiSearchUserAgent(srv),
