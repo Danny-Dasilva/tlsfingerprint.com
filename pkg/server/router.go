@@ -51,8 +51,17 @@ func Router(path string, res types.Response, srv *Server) ([]byte, string) {
 
 	paths := getAllPaths(srv)
 	if u != nil {
+		// Try exact match first
 		if val, ok := paths[u.Path]; ok {
 			return val(res, m)
+		}
+
+		// Try dynamic path matching (prefix-based)
+		dynamicPaths := getDynamicPaths()
+		for prefix, handler := range dynamicPaths {
+			if strings.HasPrefix(u.Path, prefix) {
+				return handler(res, m)
+			}
 		}
 	}
 	// 404

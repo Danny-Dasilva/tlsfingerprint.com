@@ -179,8 +179,8 @@ func SortByVal(m map[string]int, x int) map[string]int {
 	return res
 }
 
-func GetParam(_ string, m url.Values) string {
-	if val, ok := m["by"]; ok {
+func GetParam(key string, m url.Values) string {
+	if val, ok := m[key]; ok {
 		if len(val) != 0 {
 			return val[0]
 		}

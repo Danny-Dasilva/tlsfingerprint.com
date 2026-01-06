@@ -164,9 +164,12 @@ func apiSearchJA4H(srv *Server) func(types.Response, url.Values) ([]byte, string
 }
 
 func getAllPaths(srv *Server) map[string]func(types.Response, url.Values) ([]byte, string) {
-	return map[string]func(types.Response, url.Values) ([]byte, string){
+	// Start with existing routes
+	paths := map[string]func(types.Response, url.Values) ([]byte, string){
 		"/":                     index,
 		"/explore":              staticFile("static/explore.html"),
+		"/docs":                 staticFile("static/docs.html"),
+		"/openapi.json":         httpbinOpenAPI,
 		"/api/all":              apiAll,
 		"/api/tls":              apiTLS,
 		"/api/clean":            apiClean,
@@ -179,4 +182,16 @@ func getAllPaths(srv *Server) map[string]func(types.Response, url.Values) ([]byt
 		"/api/search-peetprint": apiSearchPeetPrint(srv),
 		"/api/search-useragent": apiSearchUserAgent(srv),
 	}
+
+	// Add HTTPBin-compatible routes
+	for path, handler := range getHTTPBinPaths() {
+		paths[path] = handler
+	}
+
+	return paths
+}
+
+// getDynamicPaths returns handlers that match path prefixes (e.g., /delay/5)
+func getDynamicPaths() map[string]func(types.Response, url.Values) ([]byte, string) {
+	return getDynamicHTTPBinPaths()
 }

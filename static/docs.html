@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation | TLS Fingerprint HTTPBin</title>
+  <meta name="description" content="Interactive API documentation for TLS Fingerprint HTTPBin - A simple HTTP Request & Response Service with TLS fingerprinting">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            'mono': ['JetBrains Mono', 'monospace'],
+            'sans': ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            'surface': {
+              '50': '#f8fafc',
+              '100': '#f1f5f9',
+              '800': '#1e1e2e',
+              '850': '#181825',
+              '900': '#11111b',
+              '950': '#0a0a0f',
+            },
+            'accent': {
+              'blue': '#89b4fa',
+              'green': '#a6e3a1',
+              'red': '#f38ba8',
+              'orange': '#fab387',
+              'purple': '#cba6f7',
+              'teal': '#94e2d5',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'slide-down': 'slideDown 0.3s ease-out',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(-4px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            slideDown: {
+              '0%': { opacity: '0', maxHeight: '0' },
+              '100%': { opacity: '1', maxHeight: '1000px' },
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #181825; }
+    ::-webkit-scrollbar-thumb { background: #313244; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #45475a; }
+
+    /* JSON syntax highlighting */
+    .json-key { color: #89b4fa; }
+    .json-string { color: #a6e3a1; }
+    .json-number { color: #fab387; }
+    .json-boolean { color: #cba6f7; }
+    .json-null { color: #6c7086; }
+
+    /* Glow effects */
+    .glow-blue { box-shadow: 0 0 20px rgba(137, 180, 250, 0.15); }
+    .glow-green { box-shadow: 0 0 20px rgba(166, 227, 161, 0.15); }
+    .glow-red { box-shadow: 0 0 20px rgba(243, 139, 168, 0.15); }
+    .glow-orange { box-shadow: 0 0 20px rgba(250, 179, 135, 0.15); }
+    .glow-purple { box-shadow: 0 0 20px rgba(203, 166, 247, 0.15); }
+
+    /* Noise texture overlay */
+    .noise::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+    }
+
+    /* Method badge animations */
+    .method-badge:hover { transform: scale(1.05); }
+
+    /* Endpoint row hover */
+    .endpoint-row:hover { background: rgba(255,255,255,0.02); }
+
+    /* Response area */
+    .response-area {
+      background: linear-gradient(135deg, #11111b 0%, #181825 100%);
+    }
+  </style>
+</head>
+<body class="bg-surface-950 text-gray-200 font-sans min-h-screen">
+  <!-- Gradient background -->
+  <div class="fixed inset-0 pointer-events-none">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-accent-blue/5 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-purple/5 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="mb-12">
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <h1 class="text-4xl font-bold text-white tracking-tight">TLS Fingerprint HTTPBin</h1>
+            <span class="px-2.5 py-1 text-xs font-mono font-medium bg-accent-green/10 text-accent-green rounded-full border border-accent-green/20">v1.0.0</span>
+          </div>
+          <p class="text-gray-400 text-lg max-w-2xl">
+            A simple HTTP Request & Response Service with TLS fingerprinting.
+            All responses include <span class="text-accent-teal font-medium">JA3</span>,
+            <span class="text-accent-blue font-medium">JA4</span>,
+            <span class="text-accent-purple font-medium">PeetPrint</span>, and
+            <span class="text-accent-orange font-medium">Akamai</span> fingerprints.
+          </p>
+        </div>
+        <a href="/" class="text-gray-500 hover:text-white transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Server selector -->
+      <div class="flex items-center gap-4 p-4 bg-surface-900/50 rounded-xl border border-white/5">
+        <span class="text-sm text-gray-500 font-medium">Server</span>
+        <select id="server-select" class="bg-surface-850 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-accent-blue/50 cursor-pointer">
+          <option value="">https://tlsfingerprint.com</option>
+          <option value="" selected>https://localhost:8443</option>
+        </select>
+        <div class="flex-1"></div>
+        <a href="/openapi.json" target="_blank" class="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+          OpenAPI Spec
+        </a>
+      </div>
+    </header>
+
+    <!-- API Sections -->
+    <main id="api-sections" class="space-y-4">
+      <!-- Loading state -->
+      <div id="loading" class="flex items-center justify-center py-20">
+        <div class="flex items-center gap-3 text-gray-500">
+          <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading API specification...
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-16 pt-8 border-t border-white/5 text-center text-sm text-gray-600">
+      <p>Powered by <a href="/" class="text-accent-blue hover:underline">TLS Fingerprint</a></p>
+    </footer>
+  </div>
+
+  <script>
+    // Method badge colors
+    const methodColors = {
+      get: { bg: 'bg-accent-blue/10', text: 'text-accent-blue', border: 'border-accent-blue/30', glow: 'glow-blue' },
+      post: { bg: 'bg-accent-green/10', text: 'text-accent-green', border: 'border-accent-green/30', glow: 'glow-green' },
+      put: { bg: 'bg-accent-orange/10', text: 'text-accent-orange', border: 'border-accent-orange/30', glow: 'glow-orange' },
+      patch: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', border: 'border-accent-purple/30', glow: 'glow-purple' },
+      delete: { bg: 'bg-accent-red/10', text: 'text-accent-red', border: 'border-accent-red/30', glow: 'glow-red' },
+    };
+
+    // Tag icons
+    const tagIcons = {
+      'HTTP Methods': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
+      'Request Inspection': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>`,
+      'Compression': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
+      'Cookies': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>`,
+      'Images': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
+      'Response Formats': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
+      'Redirects': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+      'Dynamic': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+    };
+
+    // JSON syntax highlighter
+    function highlightJson(json) {
+      if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
+      return json
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?)/g, (match) => {
+          if (/:$/.test(match)) return `<span class="json-key">${match.slice(0,-1)}</span>:`;
+          return `<span class="json-string">${match}</span>`;
+        })
+        .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
+        .replace(/\b(null)\b/g, '<span class="json-null">$1</span>')
+        .replace(/\b(-?\d+\.?\d*([eE][+-]?\d+)?)\b/g, '<span class="json-number">$1</span>');
+    }
+
+    // Build endpoint HTML
+    function buildEndpoint(path, method, details, index) {
+      const colors = methodColors[method] || methodColors.get;
+      const id = `endpoint-${index}`;
+      const params = details.parameters || [];
+      const hasParams = params.length > 0;
+
+      return `
+        <div class="endpoint-row rounded-lg border border-white/5 overflow-hidden transition-all" data-endpoint="${id}">
+          <!-- Endpoint Header -->
+          <button onclick="toggleEndpoint('${id}')" class="w-full flex items-center gap-4 p-4 text-left hover:bg-white/[0.02] transition-colors">
+            <span class="method-badge px-3 py-1.5 text-xs font-mono font-bold uppercase rounded-md border ${colors.bg} ${colors.text} ${colors.border} transition-transform">
+              ${method}
+            </span>
+            <code class="font-mono text-white/90 flex-1">${path}</code>
+            <span class="text-gray-500 text-sm hidden sm:block">${details.summary || ''}</span>
+            <svg class="w-5 h-5 text-gray-600 transform transition-transform" id="${id}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
+          <!-- Expanded Content -->
+          <div id="${id}-content" class="hidden border-t border-white/5">
+            <div class="p-4 space-y-4">
+              ${details.description ? `<p class="text-gray-400 text-sm">${details.description}</p>` : ''}
+
+              ${hasParams ? `
+                <div class="space-y-3">
+                  <h4 class="text-sm font-semibold text-gray-300">Parameters</h4>
+                  ${params.map(p => `
+                    <div class="flex items-center gap-3">
+                      <span class="px-2 py-0.5 text-xs font-mono bg-surface-800 text-gray-400 rounded">${p.in}</span>
+                      <code class="font-mono text-accent-blue">${p.name}</code>
+                      ${p.required ? '<span class="text-accent-red text-xs">required</span>' : '<span class="text-gray-600 text-xs">optional</span>'}
+                      <input
+                        type="text"
+                        id="${id}-param-${p.name}"
+                        placeholder="${p.schema?.type || 'value'}"
+                        class="flex-1 max-w-xs bg-surface-850 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue/50"
+                      >
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              ${method === 'post' || method === 'put' || method === 'patch' ? `
+                <div class="space-y-2">
+                  <h4 class="text-sm font-semibold text-gray-300">Request Body</h4>
+                  <textarea
+                    id="${id}-body"
+                    rows="3"
+                    placeholder='{"key": "value"}'
+                    class="w-full bg-surface-850 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue/50 resize-none"
+                  ></textarea>
+                </div>
+              ` : ''}
+
+              <!-- Execute button -->
+              <button
+                onclick="executeRequest('${path}', '${method}', '${id}')"
+                class="flex items-center gap-2 px-4 py-2 ${colors.bg} ${colors.text} border ${colors.border} rounded-lg font-medium text-sm hover:brightness-110 transition-all ${colors.glow}"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Execute
+              </button>
+
+              <!-- Response area -->
+              <div id="${id}-response" class="hidden">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-sm font-semibold text-gray-300">Response</h4>
+                  <div class="flex items-center gap-3">
+                    <span id="${id}-status" class="text-sm font-mono"></span>
+                    <span id="${id}-time" class="text-xs text-gray-500"></span>
+                  </div>
+                </div>
+                <div class="response-area rounded-lg border border-white/5 overflow-hidden">
+                  <pre id="${id}-response-body" class="p-4 text-sm font-mono overflow-x-auto max-h-96"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Build section HTML
+    function buildSection(tag, endpoints, tagIndex) {
+      const icon = tagIcons[tag] || tagIcons['Dynamic'];
+      const sectionId = `section-${tagIndex}`;
+
+      return `
+        <section class="bg-surface-900/30 rounded-2xl border border-white/5 overflow-hidden noise relative">
+          <button
+            onclick="toggleSection('${sectionId}')"
+            class="w-full flex items-center gap-4 p-5 text-left hover:bg-white/[0.02] transition-colors"
+          >
+            <div class="p-2 bg-surface-800 rounded-lg text-gray-400">
+              ${icon}
+            </div>
+            <div class="flex-1">
+              <h2 class="text-lg font-semibold text-white">${tag}</h2>
+              <p class="text-sm text-gray-500">${endpoints.length} endpoint${endpoints.length > 1 ? 's' : ''}</p>
+            </div>
+            <svg class="w-5 h-5 text-gray-500 transform transition-transform" id="${sectionId}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="${sectionId}-content" class="hidden border-t border-white/5 px-5 pb-5 space-y-2 pt-3">
+            ${endpoints.map((e, i) => buildEndpoint(e.path, e.method, e.details, `${tagIndex}-${i}`)).join('')}
+          </div>
+        </section>
+      `;
+    }
+
+    // Toggle functions
+    function toggleSection(id) {
+      const content = document.getElementById(`${id}-content`);
+      const chevron = document.getElementById(`${id}-chevron`);
+      content.classList.toggle('hidden');
+      chevron.classList.toggle('rotate-180');
+    }
+
+    function toggleEndpoint(id) {
+      const content = document.getElementById(`${id}-content`);
+      const chevron = document.getElementById(`${id}-chevron`);
+      content.classList.toggle('hidden');
+      chevron.classList.toggle('rotate-180');
+    }
+
+    // Execute API request
+    async function executeRequest(path, method, id) {
+      const responseArea = document.getElementById(`${id}-response`);
+      const responseBody = document.getElementById(`${id}-response-body`);
+      const statusEl = document.getElementById(`${id}-status`);
+      const timeEl = document.getElementById(`${id}-time`);
+
+      // Build URL with parameters
+      let url = path;
+      const params = document.querySelectorAll(`[id^="${id}-param-"]`);
+      params.forEach(input => {
+        const paramName = input.id.replace(`${id}-param-`, '');
+        const value = input.value.trim();
+        if (value) {
+          // Replace path params
+          if (url.includes(`{${paramName}}`)) {
+            url = url.replace(`{${paramName}}`, encodeURIComponent(value));
+          } else {
+            // Add query params
+            const separator = url.includes('?') ? '&' : '?';
+            url += `${separator}${paramName}=${encodeURIComponent(value)}`;
+          }
+        }
+      });
+
+      // Get request body
+      const bodyEl = document.getElementById(`${id}-body`);
+      const body = bodyEl?.value?.trim() || null;
+
+      // Show loading
+      responseArea.classList.remove('hidden');
+      responseBody.innerHTML = '<span class="text-gray-500">Loading...</span>';
+      statusEl.textContent = '';
+      timeEl.textContent = '';
+
+      const startTime = performance.now();
+
+      try {
+        const options = { method: method.toUpperCase() };
+        if (body && ['POST', 'PUT', 'PATCH'].includes(options.method)) {
+          options.body = body;
+          options.headers = { 'Content-Type': 'application/json' };
+        }
+
+        const response = await fetch(url, options);
+        const endTime = performance.now();
+        const duration = Math.round(endTime - startTime);
+
+        // Status
+        const statusColor = response.ok ? 'text-accent-green' : 'text-accent-red';
+        statusEl.innerHTML = `<span class="${statusColor}">${response.status} ${response.statusText}</span>`;
+        timeEl.textContent = `${duration}ms`;
+
+        // Body
+        const contentType = response.headers.get('content-type') || '';
+        let responseText;
+
+        if (contentType.includes('application/json')) {
+          const json = await response.json();
+          responseBody.innerHTML = highlightJson(json);
+        } else if (contentType.includes('image/')) {
+          responseBody.innerHTML = `<span class="text-gray-500">[Binary image data - ${contentType}]</span>`;
+        } else {
+          responseText = await response.text();
+          responseBody.textContent = responseText;
+        }
+      } catch (error) {
+        statusEl.innerHTML = '<span class="text-accent-red">Error</span>';
+        responseBody.innerHTML = `<span class="text-accent-red">${error.message}</span>`;
+      }
+    }
+
+    // Load and render OpenAPI spec
+    async function loadSpec() {
+      try {
+        const response = await fetch('/openapi.json');
+        const spec = await response.json();
+
+        // Group endpoints by tag
+        const grouped = {};
+        const tagOrder = (spec.tags || []).map(t => t.name);
+
+        for (const [path, methods] of Object.entries(spec.paths || {})) {
+          for (const [method, details] of Object.entries(methods)) {
+            const tags = details.tags || ['Other'];
+            tags.forEach(tag => {
+              if (!grouped[tag]) grouped[tag] = [];
+              grouped[tag].push({ path, method, details });
+            });
+          }
+        }
+
+        // Render sections
+        const container = document.getElementById('api-sections');
+        container.innerHTML = '';
+
+        // Render in tag order, then any remaining
+        const renderedTags = new Set();
+        let tagIndex = 0;
+
+        tagOrder.forEach(tag => {
+          if (grouped[tag]) {
+            container.innerHTML += buildSection(tag, grouped[tag], tagIndex++);
+            renderedTags.add(tag);
+          }
+        });
+
+        Object.keys(grouped).forEach(tag => {
+          if (!renderedTags.has(tag)) {
+            container.innerHTML += buildSection(tag, grouped[tag], tagIndex++);
+          }
+        });
+
+        // Auto-expand first section
+        if (tagIndex > 0) {
+          toggleSection('section-0');
+        }
+
+      } catch (error) {
+        document.getElementById('api-sections').innerHTML = `
+          <div class="text-center py-20 text-accent-red">
+            <p>Failed to load API specification</p>
+            <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadSpec);
+  </script>
+</body>
+</html>

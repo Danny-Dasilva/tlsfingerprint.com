@@ -253,9 +253,30 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 		}
 	}
 
-	res1 := "HTTP/1.1 200 OK\r\n"
+	// Extract status code from /status/{code} path
+	statusCode := 200
+	if strings.HasPrefix(resp.Path, "/status/") {
+		parts := strings.Split(resp.Path, "/")
+		if len(parts) >= 3 {
+			if code, err := strconv.Atoi(parts[2]); err == nil && code >= 100 && code < 600 {
+				statusCode = code
+			}
+		}
+	}
+
+	res1 := fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, http.StatusText(statusCode))
 	res1 += "Content-Length: " + fmt.Sprintf("%v\r\n", len(res))
 	res1 += "Content-Type: " + ctype + "; charset=utf-8\r\n"
+
+	// Add Content-Encoding header for compression endpoints
+	if strings.HasPrefix(resp.Path, "/gzip") {
+		res1 += "Content-Encoding: gzip\r\n"
+	} else if strings.HasPrefix(resp.Path, "/deflate") {
+		res1 += "Content-Encoding: deflate\r\n"
+	} else if strings.HasPrefix(resp.Path, "/brotli") {
+		res1 += "Content-Encoding: br\r\n"
+	}
+
 	if isAdmin {
 		res1 += "Access-Control-Allow-Origin: *\r\n"
 		res1 += "Access-Control-Allow-Methods: *\r\n"
@@ -306,29 +327,58 @@ func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) 
 	var frame types.ParsedFrame
 	var headerFrame types.ParsedFrame
 	var isAdmin bool
+	var headersReceived bool
 
 	go parseHTTP2(fr, c)
 
+	// Timeout for waiting for frames after HEADERS received
+	bodyTimeout := time.NewTimer(5 * time.Second)
+	bodyTimeout.Stop() // Don't start until we receive HEADERS
+
+frameLoop:
 	for {
-		frame = <-c
-		if frame.Type == "ERROR_CLOSE" {
-			err = conn.Close()
-			if err != nil {
-				log.Println("Cant close connection", err)
+		select {
+		case frame = <-c:
+			if frame.Type == "ERROR_CLOSE" {
+				bodyTimeout.Stop()
+				err = conn.Close()
+				if err != nil {
+					log.Println("Cant close connection", err)
+				}
+				return
+			} else if frame.Type == "ERROR" {
+				bodyTimeout.Stop()
+				return
 			}
-			return
-		} else if frame.Type == "ERROR" {
-			return
-		}
-		// log.Println(frame)
-		frames = append(frames, frame)
-		if frame.Type == "HEADERS" {
-			headerFrame = frame
-		}
-		if len(frame.Flags) > 0 && frame.Flags[0] == "EndStream (0x1)" {
-			break
+			// log.Println(frame)
+			frames = append(frames, frame)
+			if frame.Type == "HEADERS" {
+				headerFrame = frame
+				headersReceived = true
+				// Check if HEADERS frame has EndStream flag (no body)
+				for _, flag := range frame.Flags {
+					if flag == "EndStream (0x1)" {
+						break frameLoop
+					}
+				}
+				// HEADERS without EndStream means body may follow - start timeout
+				bodyTimeout.Reset(2 * time.Second)
+			}
+			// Check for EndStream on any frame (typically DATA frame)
+			for _, flag := range frame.Flags {
+				if flag == "EndStream (0x1)" {
+					break frameLoop
+				}
+			}
+		case <-bodyTimeout.C:
+			// Timeout waiting for body/EndStream after HEADERS received
+			// Proceed with what we have if we got HEADERS
+			if headersReceived {
+				break frameLoop
+			}
 		}
 	}
+	bodyTimeout.Stop()
 
 	// get method, path and user-agent from the header frame
 	var path string
@@ -386,13 +436,34 @@ func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) 
 		isAdmin = true
 	}
 
+	// Extract status code from /status/{code} path
+	statusCode := 200
+	if strings.HasPrefix(path, "/status/") {
+		parts := strings.Split(path, "/")
+		if len(parts) >= 3 {
+			if code, err := strconv.Atoi(parts[2]); err == nil && code >= 100 && code < 600 {
+				statusCode = code
+			}
+		}
+	}
+
 	// Prepare HEADERS
 	hbuf := bytes.NewBuffer([]byte{})
 	encoder := hpack.NewEncoder(hbuf)
-	encoder.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
+	encoder.WriteField(hpack.HeaderField{Name: ":status", Value: strconv.Itoa(statusCode)})
 	encoder.WriteField(hpack.HeaderField{Name: "server", Value: "TrackMe.peet.ws"})
 	encoder.WriteField(hpack.HeaderField{Name: "content-length", Value: strconv.Itoa(len(res))})
 	encoder.WriteField(hpack.HeaderField{Name: "content-type", Value: ctype})
+
+	// Add Content-Encoding header for compression endpoints
+	if strings.HasPrefix(path, "/gzip") {
+		encoder.WriteField(hpack.HeaderField{Name: "content-encoding", Value: "gzip"})
+	} else if strings.HasPrefix(path, "/deflate") {
+		encoder.WriteField(hpack.HeaderField{Name: "content-encoding", Value: "deflate"})
+	} else if strings.HasPrefix(path, "/brotli") {
+		encoder.WriteField(hpack.HeaderField{Name: "content-encoding", Value: "br"})
+	}
+
 	encoder.WriteField(hpack.HeaderField{Name: "alt-svc", Value: "h3=\":443\"; ma=86400"})
 	if isAdmin {
 		encoder.WriteField(hpack.HeaderField{Name: "access-control-allow-origin", Value: "*"})
