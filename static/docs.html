@@ -415,8 +415,9 @@
     function toggleTryItOut(id) {
       const btn = document.getElementById(`${id}-try-btn`);
       const executeSection = document.getElementById(`${id}-execute-section`);
-      const paramInputs = document.querySelectorAll(`#${id}-params-section .param-input`);
-      const paramDescs = document.querySelectorAll(`#${id}-params-section .param-desc`);
+      const paramsSection = document.getElementById(`${id}-params-section`);
+      const paramInputs = paramsSection.querySelectorAll('.param-input');
+      const paramDescs = paramsSection.querySelectorAll('.param-desc');
 
       state.tryItOutMode[id] = !state.tryItOutMode[id];
 
@@ -432,8 +433,14 @@
         btn.classList.remove('border-swagger-delete', 'text-swagger-delete');
         btn.classList.add('border-swagger-border', 'text-swagger-text');
         executeSection.classList.add('hidden');
-        paramInputs.forEach(el => el.classList.add('hidden'));
+        paramInputs.forEach(el => {
+          el.classList.add('hidden');
+          el.value = '';  // Reset input values
+        });
         paramDescs.forEach(el => el.classList.remove('hidden'));
+        // Hide response display and clear state
+        document.getElementById(`${id}-response-display`).classList.add('hidden');
+        delete state.responses[id];
       }
     }
 
@@ -487,7 +494,7 @@
 
       try {
         const options = { method: method.toUpperCase(), headers };
-        const response = await fetch(url, options);
+        const response = await fetch(fullUrl, options);
 
         // Collect headers
         const responseHeaders = [];
