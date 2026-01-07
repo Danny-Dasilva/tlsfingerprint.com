@@ -1,291 +1,350 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API Documentation | TLS Fingerprint HTTPBin</title>
-  <meta name="description" content="Interactive API documentation for TLS Fingerprint HTTPBin - A simple HTTP Request & Response Service with TLS fingerprinting">
+  <title>TLS Fingerprint HTTPBin API</title>
+  <meta name="description" content="A simple HTTP Request & Response Service with TLS fingerprinting">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            'mono': ['JetBrains Mono', 'monospace'],
-            'sans': ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+            'sans': ['Open Sans', 'sans-serif'],
+            'mono': ['Source Code Pro', 'monospace'],
           },
           colors: {
-            'surface': {
-              '50': '#f8fafc',
-              '100': '#f1f5f9',
-              '800': '#1e1e2e',
-              '850': '#181825',
-              '900': '#11111b',
-              '950': '#0a0a0f',
-            },
-            'accent': {
-              'blue': '#89b4fa',
-              'green': '#a6e3a1',
-              'red': '#f38ba8',
-              'orange': '#fab387',
-              'purple': '#cba6f7',
-              'teal': '#94e2d5',
+            'swagger': {
+              'bg': '#fafafa',
+              'border': '#d8dde7',
+              'text': '#3b4151',
+              'text-light': '#606060',
+              'get': '#61affe',
+              'get-bg': '#ebf3fb',
+              'get-border': '#61affe',
+              'post': '#49cc90',
+              'post-bg': '#e8f6f0',
+              'post-border': '#49cc90',
+              'put': '#fca130',
+              'put-bg': '#fbf1e6',
+              'put-border': '#fca130',
+              'patch': '#50e3c2',
+              'patch-bg': '#e9faf6',
+              'patch-border': '#50e3c2',
+              'delete': '#f93e3e',
+              'delete-bg': '#fbe7e7',
+              'delete-border': '#f93e3e',
+              'code-bg': '#41444e',
+              'execute': '#4990e2',
+              'section-bg': '#f7f7f7',
             }
-          },
-          animation: {
-            'fade-in': 'fadeIn 0.3s ease-out',
-            'slide-down': 'slideDown 0.3s ease-out',
-            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-          },
-          keyframes: {
-            fadeIn: {
-              '0%': { opacity: '0', transform: 'translateY(-4px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            slideDown: {
-              '0%': { opacity: '0', maxHeight: '0' },
-              '100%': { opacity: '1', maxHeight: '1000px' },
-            },
           }
         }
       }
     }
   </script>
   <style>
-    * { transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+    body { background: #fafafa; }
+    .endpoint-row { border-left-width: 3px; }
+    .code-block { background: #41444e; color: #fff; }
+    .code-block .hljs-string { color: #a5d6a7; }
+    .code-block .hljs-attr { color: #80cbc4; }
+    .code-block .hljs-number { color: #f48fb1; }
 
-    /* Custom scrollbar */
+    /* Smooth transitions */
+    .endpoint-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    .endpoint-content.open {
+      max-height: 5000px;
+      transition: max-height 0.5s ease-in;
+    }
+
+    /* Table styling */
+    .param-table th {
+      background: #fafafa;
+      font-weight: 600;
+      font-size: 12px;
+      color: #3b4151;
+      text-transform: uppercase;
+    }
+    .param-table td, .param-table th {
+      border: 1px solid #d8dde7;
+      padding: 10px;
+    }
+
+    /* Response description box */
+    .response-desc {
+      background: #41444e;
+      color: #fff;
+      padding: 10px 15px;
+      font-family: 'Source Code Pro', monospace;
+      font-size: 12px;
+    }
+
+    /* Scrollbar */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #181825; }
-    ::-webkit-scrollbar-thumb { background: #313244; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #45475a; }
-
-    /* JSON syntax highlighting */
-    .json-key { color: #89b4fa; }
-    .json-string { color: #a6e3a1; }
-    .json-number { color: #fab387; }
-    .json-boolean { color: #cba6f7; }
-    .json-null { color: #6c7086; }
-
-    /* Glow effects */
-    .glow-blue { box-shadow: 0 0 20px rgba(137, 180, 250, 0.15); }
-    .glow-green { box-shadow: 0 0 20px rgba(166, 227, 161, 0.15); }
-    .glow-red { box-shadow: 0 0 20px rgba(243, 139, 168, 0.15); }
-    .glow-orange { box-shadow: 0 0 20px rgba(250, 179, 135, 0.15); }
-    .glow-purple { box-shadow: 0 0 20px rgba(203, 166, 247, 0.15); }
-
-    /* Noise texture overlay */
-    .noise::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-      opacity: 0.03;
-      pointer-events: none;
-    }
-
-    /* Method badge animations */
-    .method-badge:hover { transform: scale(1.05); }
-
-    /* Endpoint row hover */
-    .endpoint-row:hover { background: rgba(255,255,255,0.02); }
-
-    /* Response area */
-    .response-area {
-      background: linear-gradient(135deg, #11111b 0%, #181825 100%);
-    }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
   </style>
 </head>
-<body class="bg-surface-950 text-gray-200 font-sans min-h-screen">
-  <!-- Gradient background -->
-  <div class="fixed inset-0 pointer-events-none">
-    <div class="absolute top-0 left-1/4 w-96 h-96 bg-accent-blue/5 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-purple/5 rounded-full blur-3xl"></div>
-  </div>
-
-  <div class="relative max-w-6xl mx-auto px-4 py-8">
+<body class="font-sans text-swagger-text">
+  <div class="max-w-5xl mx-auto px-4 py-8">
     <!-- Header -->
-    <header class="mb-12">
-      <div class="flex items-start justify-between mb-6">
-        <div>
-          <div class="flex items-center gap-3 mb-2">
-            <h1 class="text-4xl font-bold text-white tracking-tight">TLS Fingerprint HTTPBin</h1>
-            <span class="px-2.5 py-1 text-xs font-mono font-medium bg-accent-green/10 text-accent-green rounded-full border border-accent-green/20">v1.0.0</span>
-          </div>
-          <p class="text-gray-400 text-lg max-w-2xl">
-            A simple HTTP Request & Response Service with TLS fingerprinting.
-            All responses include <span class="text-accent-teal font-medium">JA3</span>,
-            <span class="text-accent-blue font-medium">JA4</span>,
-            <span class="text-accent-purple font-medium">PeetPrint</span>, and
-            <span class="text-accent-orange font-medium">Akamai</span> fingerprints.
-          </p>
-        </div>
-        <a href="/" class="text-gray-500 hover:text-white transition-colors">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-          </svg>
-        </a>
+    <header class="mb-8 pb-6 border-b border-swagger-border">
+      <div class="flex items-center gap-2 mb-2">
+        <h1 class="text-4xl font-bold text-swagger-text">tlsfingerprint.com</h1>
+        <span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">1.0.0</span>
+      </div>
+      <p class="text-gray-600 mb-4">[ Base URL: tlsfingerprint.com ]</p>
+      <p class="text-swagger-text mb-4">A simple HTTP Request & Response Service with TLS fingerprinting.</p>
+
+      <div class="flex items-center gap-4 mb-4">
+        <span class="text-sm text-gray-600">Run locally:</span>
+        <code class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-mono">$ docker run -p 8443:8443 tlsfingerprint/httpbin</code>
       </div>
 
-      <!-- Server selector -->
-      <div class="flex items-center gap-4 p-4 bg-surface-900/50 rounded-xl border border-white/5">
-        <span class="text-sm text-gray-500 font-medium">Server</span>
-        <select id="server-select" class="bg-surface-850 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-accent-blue/50 cursor-pointer">
-          <option value="">https://tlsfingerprint.com</option>
-          <option value="" selected>https://localhost:8443</option>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-semibold">Schemes</span>
+        <select id="scheme-select" class="border border-swagger-border rounded px-2 py-1 text-sm bg-white">
+          <option value="https">HTTPS</option>
+          <option value="http">HTTP</option>
         </select>
-        <div class="flex-1"></div>
-        <a href="/openapi.json" target="_blank" class="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-          </svg>
-          OpenAPI Spec
-        </a>
       </div>
     </header>
 
     <!-- API Sections -->
-    <main id="api-sections" class="space-y-4">
-      <!-- Loading state -->
-      <div id="loading" class="flex items-center justify-center py-20">
-        <div class="flex items-center gap-3 text-gray-500">
-          <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Loading API specification...
-        </div>
+    <main id="api-sections">
+      <div class="flex items-center justify-center py-12 text-gray-500">
+        <svg class="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        Loading...
       </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="mt-16 pt-8 border-t border-white/5 text-center text-sm text-gray-600">
-      <p>Powered by <a href="/" class="text-accent-blue hover:underline">TLS Fingerprint</a></p>
-    </footer>
   </div>
 
   <script>
-    // Method badge colors
-    const methodColors = {
-      get: { bg: 'bg-accent-blue/10', text: 'text-accent-blue', border: 'border-accent-blue/30', glow: 'glow-blue' },
-      post: { bg: 'bg-accent-green/10', text: 'text-accent-green', border: 'border-accent-green/30', glow: 'glow-green' },
-      put: { bg: 'bg-accent-orange/10', text: 'text-accent-orange', border: 'border-accent-orange/30', glow: 'glow-orange' },
-      patch: { bg: 'bg-accent-purple/10', text: 'text-accent-purple', border: 'border-accent-purple/30', glow: 'glow-purple' },
-      delete: { bg: 'bg-accent-red/10', text: 'text-accent-red', border: 'border-accent-red/30', glow: 'glow-red' },
+    // Method colors configuration
+    const methodConfig = {
+      get: { bg: 'bg-swagger-get-bg', border: 'border-swagger-get', badge: 'bg-swagger-get', hoverBg: 'hover:bg-swagger-get-bg' },
+      post: { bg: 'bg-swagger-post-bg', border: 'border-swagger-post', badge: 'bg-swagger-post', hoverBg: 'hover:bg-swagger-post-bg' },
+      put: { bg: 'bg-swagger-put-bg', border: 'border-swagger-put', badge: 'bg-swagger-put', hoverBg: 'hover:bg-swagger-put-bg' },
+      patch: { bg: 'bg-swagger-patch-bg', border: 'border-swagger-patch', badge: 'bg-swagger-patch', hoverBg: 'hover:bg-swagger-patch-bg' },
+      delete: { bg: 'bg-swagger-delete-bg', border: 'border-swagger-delete', badge: 'bg-swagger-delete', hoverBg: 'hover:bg-swagger-delete-bg' },
     };
 
-    // Tag icons
-    const tagIcons = {
-      'HTTP Methods': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
-      'Request Inspection': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>`,
-      'Compression': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
-      'Cookies': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>`,
-      'Images': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
-      'Response Formats': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
-      'Redirects': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-      'Dynamic': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+    // State management
+    const state = {
+      expandedEndpoints: new Set(),
+      tryItOutMode: {},
+      responses: {},
     };
 
-    // JSON syntax highlighter
-    function highlightJson(json) {
-      if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
+    // Generate curl command
+    function generateCurl(method, url, headers = {}) {
+      let cmd = `curl -X ${method.toUpperCase()} "${url}"`;
+      Object.entries(headers).forEach(([key, val]) => {
+        cmd += ` \\\n  -H "${key}: ${val}"`;
+      });
+      return cmd;
+    }
+
+    // Download response as JSON
+    function downloadResponse(id) {
+      const data = state.responses[id];
+      if (!data) return;
+      const blob = new Blob([JSON.stringify(data.body, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'response.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Format JSON with syntax highlighting
+    function formatJson(obj) {
+      const json = JSON.stringify(obj, null, 2);
       return json
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?)/g, (match) => {
-          if (/:$/.test(match)) return `<span class="json-key">${match.slice(0,-1)}</span>:`;
-          return `<span class="json-string">${match}</span>`;
-        })
-        .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
-        .replace(/\b(null)\b/g, '<span class="json-null">$1</span>')
-        .replace(/\b(-?\d+\.?\d*([eE][+-]?\d+)?)\b/g, '<span class="json-number">$1</span>');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"([^"]+)":/g, '<span class="text-cyan-300">"$1"</span>:')
+        .replace(/: "([^"]*)"/g, ': <span class="text-green-300">"$1"</span>')
+        .replace(/: (\d+)/g, ': <span class="text-pink-300">$1</span>')
+        .replace(/: (true|false|null)/g, ': <span class="text-yellow-300">$1</span>');
     }
 
     // Build endpoint HTML
-    function buildEndpoint(path, method, details, index) {
-      const colors = methodColors[method] || methodColors.get;
-      const id = `endpoint-${index}`;
+    function buildEndpoint(path, method, details, id) {
+      const config = methodConfig[method] || methodConfig.get;
       const params = details.parameters || [];
       const hasParams = params.length > 0;
+      const summary = details.summary || '';
+      const description = details.description || summary;
 
       return `
-        <div class="endpoint-row rounded-lg border border-white/5 overflow-hidden transition-all" data-endpoint="${id}">
-          <!-- Endpoint Header -->
-          <button onclick="toggleEndpoint('${id}')" class="w-full flex items-center gap-4 p-4 text-left hover:bg-white/[0.02] transition-colors">
-            <span class="method-badge px-3 py-1.5 text-xs font-mono font-bold uppercase rounded-md border ${colors.bg} ${colors.text} ${colors.border} transition-transform">
+        <div class="endpoint-row border ${config.border} ${config.bg} rounded mb-1" data-id="${id}">
+          <!-- Header Row -->
+          <div class="flex items-center gap-3 px-4 py-2 cursor-pointer ${config.hoverBg}" onclick="toggleEndpoint('${id}')">
+            <span class="${config.badge} text-white text-xs font-bold uppercase px-3 py-1 rounded min-w-[80px] text-center">
               ${method}
             </span>
-            <code class="font-mono text-white/90 flex-1">${path}</code>
-            <span class="text-gray-500 text-sm hidden sm:block">${details.summary || ''}</span>
-            <svg class="w-5 h-5 text-gray-600 transform transition-transform" id="${id}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span class="font-mono text-base text-swagger-text font-semibold">${path}</span>
+            <span class="text-gray-500 text-sm flex-1">${summary}</span>
+            <svg class="w-4 h-4 text-gray-400 transform transition-transform" id="${id}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
-          </button>
+          </div>
 
           <!-- Expanded Content -->
-          <div id="${id}-content" class="hidden border-t border-white/5">
-            <div class="p-4 space-y-4">
-              ${details.description ? `<p class="text-gray-400 text-sm">${details.description}</p>` : ''}
+          <div class="endpoint-content border-t border-swagger-border bg-white" id="${id}-content">
+            <div class="p-4">
+              ${description ? `<p class="text-sm text-gray-600 mb-4">${description}</p>` : ''}
 
-              ${hasParams ? `
-                <div class="space-y-3">
-                  <h4 class="text-sm font-semibold text-gray-300">Parameters</h4>
-                  ${params.map(p => `
-                    <div class="flex items-center gap-3">
-                      <span class="px-2 py-0.5 text-xs font-mono bg-surface-800 text-gray-400 rounded">${p.in}</span>
-                      <code class="font-mono text-accent-blue">${p.name}</code>
-                      ${p.required ? '<span class="text-accent-red text-xs">required</span>' : '<span class="text-gray-600 text-xs">optional</span>'}
-                      <input
-                        type="text"
-                        id="${id}-param-${p.name}"
-                        placeholder="${p.schema?.type || 'value'}"
-                        class="flex-1 max-w-xs bg-surface-850 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue/50"
-                      >
-                    </div>
-                  `).join('')}
-                </div>
-              ` : ''}
-
-              ${method === 'post' || method === 'put' || method === 'patch' ? `
-                <div class="space-y-2">
-                  <h4 class="text-sm font-semibold text-gray-300">Request Body</h4>
-                  <textarea
-                    id="${id}-body"
-                    rows="3"
-                    placeholder='{"key": "value"}'
-                    class="w-full bg-surface-850 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue/50 resize-none"
-                  ></textarea>
-                </div>
-              ` : ''}
-
-              <!-- Execute button -->
-              <button
-                onclick="executeRequest('${path}', '${method}', '${id}')"
-                class="flex items-center gap-2 px-4 py-2 ${colors.bg} ${colors.text} border ${colors.border} rounded-lg font-medium text-sm hover:brightness-110 transition-all ${colors.glow}"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Execute
-              </button>
-
-              <!-- Response area -->
-              <div id="${id}-response" class="hidden">
+              <!-- Parameters Section -->
+              <div class="mb-4" id="${id}-params-section">
                 <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-sm font-semibold text-gray-300">Response</h4>
-                  <div class="flex items-center gap-3">
-                    <span id="${id}-status" class="text-sm font-mono"></span>
-                    <span id="${id}-time" class="text-xs text-gray-500"></span>
+                  <h4 class="text-sm font-semibold text-swagger-text">Parameters</h4>
+                  <button onclick="toggleTryItOut('${id}')" id="${id}-try-btn" class="px-4 py-1 text-sm border border-swagger-border text-swagger-text rounded hover:bg-gray-50">
+                    Try it out
+                  </button>
+                </div>
+
+                ${hasParams ? `
+                  <table class="param-table w-full text-sm border-collapse">
+                    <thead>
+                      <tr>
+                        <th class="text-left w-1/3">Name</th>
+                        <th class="text-left">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${params.map(p => `
+                        <tr>
+                          <td class="align-top">
+                            <div class="font-semibold text-swagger-text">${p.name}</div>
+                            <div class="text-xs text-gray-500">${p.schema?.type || 'string'}</div>
+                            <div class="text-xs text-gray-400">(${p.in})</div>
+                            ${p.required ? '<div class="text-xs text-red-500">* required</div>' : ''}
+                          </td>
+                          <td>
+                            <input type="text"
+                              id="${id}-param-${p.name}"
+                              class="param-input w-full border border-swagger-border rounded px-3 py-2 text-sm font-mono hidden"
+                              placeholder="${p.schema?.type || 'value'}"
+                              ${p.schema?.minimum ? `min="${p.schema.minimum}"` : ''}
+                              ${p.schema?.maximum ? `max="${p.schema.maximum}"` : ''}
+                            >
+                            <span class="param-desc text-gray-500 text-sm">${p.description || '-'}</span>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                ` : '<p class="text-sm text-gray-500">No parameters</p>'}
+              </div>
+
+              <!-- Execute/Clear Buttons (hidden initially) -->
+              <div class="hidden mb-4" id="${id}-execute-section">
+                <div class="flex gap-0">
+                  <button onclick="executeRequest('${path}', '${method}', '${id}')"
+                    class="flex-1 bg-swagger-execute text-white font-bold py-2 px-4 text-sm hover:opacity-90">
+                    Execute
+                  </button>
+                  <button onclick="clearResponse('${id}')"
+                    class="flex-1 bg-gray-400 text-white font-bold py-2 px-4 text-sm hover:opacity-90">
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <!-- Response Display (hidden initially) -->
+              <div class="hidden" id="${id}-response-display">
+                <!-- Curl -->
+                <div class="mb-4">
+                  <h5 class="text-sm font-semibold text-swagger-text mb-2">Curl</h5>
+                  <pre class="code-block rounded p-4 text-sm font-mono overflow-x-auto whitespace-pre-wrap" id="${id}-curl"></pre>
+                </div>
+
+                <!-- Request URL -->
+                <div class="mb-4">
+                  <h5 class="text-sm font-semibold text-swagger-text mb-2">Request URL</h5>
+                  <div class="bg-swagger-get-bg border border-swagger-get rounded px-4 py-2 font-mono text-sm" id="${id}-request-url"></div>
+                </div>
+
+                <!-- Server Response -->
+                <div class="mb-4">
+                  <h5 class="text-sm font-semibold text-swagger-text mb-2">Server response</h5>
+                  <table class="w-full border-collapse text-sm">
+                    <thead>
+                      <tr class="border-b border-swagger-border">
+                        <th class="text-left py-2 w-20 text-swagger-text">Code</th>
+                        <th class="text-left py-2 text-swagger-text">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="py-3 align-top font-semibold" id="${id}-status-code">-</td>
+                        <td class="py-3">
+                          <!-- Response Body -->
+                          <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                              <span class="text-sm font-semibold text-swagger-text">Response body</span>
+                              <button onclick="downloadResponse('${id}')" class="px-3 py-1 text-xs border border-swagger-border rounded hover:bg-gray-50">
+                                Download
+                              </button>
+                            </div>
+                            <pre class="code-block rounded p-4 text-sm font-mono overflow-x-auto max-h-80" id="${id}-response-body"></pre>
+                          </div>
+
+                          <!-- Response Headers -->
+                          <div>
+                            <span class="text-sm font-semibold text-swagger-text block mb-2">Response headers</span>
+                            <pre class="code-block rounded p-4 text-sm font-mono overflow-x-auto" id="${id}-response-headers"></pre>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Responses Section -->
+              <div class="border-t border-swagger-border pt-4">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-sm font-semibold text-swagger-text">Responses</h4>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">Response content type</span>
+                    <select class="border border-swagger-border rounded px-2 py-1 text-xs bg-white">
+                      <option>application/json</option>
+                    </select>
                   </div>
                 </div>
-                <div class="response-area rounded-lg border border-white/5 overflow-hidden">
-                  <pre id="${id}-response-body" class="p-4 text-sm font-mono overflow-x-auto max-h-96"></pre>
-                </div>
+                <table class="w-full border-collapse text-sm">
+                  <thead>
+                    <tr class="border-b border-swagger-border">
+                      <th class="text-left py-2 w-20 text-swagger-text">Code</th>
+                      <th class="text-left py-2 text-swagger-text">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="py-3 align-top font-semibold">200</td>
+                      <td class="py-3">
+                        <div class="response-desc rounded">${summary || 'Successful response'}</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -295,121 +354,179 @@
 
     // Build section HTML
     function buildSection(tag, endpoints, tagIndex) {
-      const icon = tagIcons[tag] || tagIcons['Dynamic'];
+      const tagDescriptions = {
+        'HTTP Methods': 'Testing different HTTP verbs',
+        'Request Inspection': 'Inspect request details',
+        'Compression': 'Compressed responses',
+        'Cookies': 'Cookie operations',
+        'Images': 'Binary image responses',
+        'Response Formats': 'Different response formats',
+        'Redirects': 'Redirect operations',
+        'Dynamic': 'Dynamic response generation',
+      };
+
       const sectionId = `section-${tagIndex}`;
+      const desc = tagDescriptions[tag] || '';
 
       return `
-        <section class="bg-surface-900/30 rounded-2xl border border-white/5 overflow-hidden noise relative">
-          <button
-            onclick="toggleSection('${sectionId}')"
-            class="w-full flex items-center gap-4 p-5 text-left hover:bg-white/[0.02] transition-colors"
-          >
-            <div class="p-2 bg-surface-800 rounded-lg text-gray-400">
-              ${icon}
+        <section class="mb-4 border border-swagger-border rounded bg-white" data-section="${sectionId}">
+          <button onclick="toggleSection('${sectionId}')"
+            class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left">
+            <div>
+              <span class="text-lg font-bold text-swagger-text">${tag}</span>
+              <span class="text-sm text-gray-500 ml-2">${desc}</span>
             </div>
-            <div class="flex-1">
-              <h2 class="text-lg font-semibold text-white">${tag}</h2>
-              <p class="text-sm text-gray-500">${endpoints.length} endpoint${endpoints.length > 1 ? 's' : ''}</p>
-            </div>
-            <svg class="w-5 h-5 text-gray-500 transform transition-transform" id="${sectionId}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            <svg class="w-5 h-5 text-gray-400 transform transition-transform" id="${sectionId}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
           </button>
-          <div id="${sectionId}-content" class="hidden border-t border-white/5 px-5 pb-5 space-y-2 pt-3">
+          <div class="border-t border-swagger-border p-3 hidden" id="${sectionId}-content">
             ${endpoints.map((e, i) => buildEndpoint(e.path, e.method, e.details, `${tagIndex}-${i}`)).join('')}
           </div>
         </section>
       `;
     }
 
-    // Toggle functions
+    // Toggle section
     function toggleSection(id) {
       const content = document.getElementById(`${id}-content`);
       const chevron = document.getElementById(`${id}-chevron`);
       content.classList.toggle('hidden');
-      chevron.classList.toggle('rotate-180');
+      chevron.classList.toggle('rotate-90');
     }
 
+    // Toggle endpoint
     function toggleEndpoint(id) {
       const content = document.getElementById(`${id}-content`);
       const chevron = document.getElementById(`${id}-chevron`);
-      content.classList.toggle('hidden');
-      chevron.classList.toggle('rotate-180');
+
+      if (state.expandedEndpoints.has(id)) {
+        content.classList.remove('open');
+        chevron.classList.remove('rotate-180');
+        state.expandedEndpoints.delete(id);
+      } else {
+        content.classList.add('open');
+        chevron.classList.add('rotate-180');
+        state.expandedEndpoints.add(id);
+      }
     }
 
-    // Execute API request
+    // Toggle try it out mode
+    function toggleTryItOut(id) {
+      const btn = document.getElementById(`${id}-try-btn`);
+      const executeSection = document.getElementById(`${id}-execute-section`);
+      const paramInputs = document.querySelectorAll(`#${id}-params-section .param-input`);
+      const paramDescs = document.querySelectorAll(`#${id}-params-section .param-desc`);
+
+      state.tryItOutMode[id] = !state.tryItOutMode[id];
+
+      if (state.tryItOutMode[id]) {
+        btn.textContent = 'Cancel';
+        btn.classList.add('border-swagger-delete', 'text-swagger-delete');
+        btn.classList.remove('border-swagger-border', 'text-swagger-text');
+        executeSection.classList.remove('hidden');
+        paramInputs.forEach(el => el.classList.remove('hidden'));
+        paramDescs.forEach(el => el.classList.add('hidden'));
+      } else {
+        btn.textContent = 'Try it out';
+        btn.classList.remove('border-swagger-delete', 'text-swagger-delete');
+        btn.classList.add('border-swagger-border', 'text-swagger-text');
+        executeSection.classList.add('hidden');
+        paramInputs.forEach(el => el.classList.add('hidden'));
+        paramDescs.forEach(el => el.classList.remove('hidden'));
+      }
+    }
+
+    // Clear response
+    function clearResponse(id) {
+      document.getElementById(`${id}-response-display`).classList.add('hidden');
+      delete state.responses[id];
+    }
+
+    // Execute request
     async function executeRequest(path, method, id) {
-      const responseArea = document.getElementById(`${id}-response`);
-      const responseBody = document.getElementById(`${id}-response-body`);
-      const statusEl = document.getElementById(`${id}-status`);
-      const timeEl = document.getElementById(`${id}-time`);
+      const scheme = document.getElementById('scheme-select').value;
+      const baseUrl = window.location.origin;
 
       // Build URL with parameters
       let url = path;
       const params = document.querySelectorAll(`[id^="${id}-param-"]`);
+      const queryParams = [];
+
       params.forEach(input => {
         const paramName = input.id.replace(`${id}-param-`, '');
         const value = input.value.trim();
         if (value) {
-          // Replace path params
           if (url.includes(`{${paramName}}`)) {
             url = url.replace(`{${paramName}}`, encodeURIComponent(value));
           } else {
-            // Add query params
-            const separator = url.includes('?') ? '&' : '?';
-            url += `${separator}${paramName}=${encodeURIComponent(value)}`;
+            queryParams.push(`${paramName}=${encodeURIComponent(value)}`);
           }
         }
       });
 
-      // Get request body
-      const bodyEl = document.getElementById(`${id}-body`);
-      const body = bodyEl?.value?.trim() || null;
+      if (queryParams.length > 0) {
+        url += (url.includes('?') ? '&' : '?') + queryParams.join('&');
+      }
 
-      // Show loading
-      responseArea.classList.remove('hidden');
-      responseBody.innerHTML = '<span class="text-gray-500">Loading...</span>';
-      statusEl.textContent = '';
-      timeEl.textContent = '';
+      const fullUrl = baseUrl + url;
+      const headers = { 'Accept': 'application/json' };
 
-      const startTime = performance.now();
+      // Show response section
+      const responseDisplay = document.getElementById(`${id}-response-display`);
+      responseDisplay.classList.remove('hidden');
+
+      // Update curl
+      document.getElementById(`${id}-curl`).textContent = generateCurl(method, fullUrl, headers);
+      document.getElementById(`${id}-request-url`).textContent = fullUrl;
+
+      // Loading state
+      document.getElementById(`${id}-status-code`).textContent = '...';
+      document.getElementById(`${id}-response-body`).innerHTML = 'Loading...';
+      document.getElementById(`${id}-response-headers`).textContent = '';
 
       try {
-        const options = { method: method.toUpperCase() };
-        if (body && ['POST', 'PUT', 'PATCH'].includes(options.method)) {
-          options.body = body;
-          options.headers = { 'Content-Type': 'application/json' };
-        }
-
+        const options = { method: method.toUpperCase(), headers };
         const response = await fetch(url, options);
-        const endTime = performance.now();
-        const duration = Math.round(endTime - startTime);
+
+        // Collect headers
+        const responseHeaders = [];
+        response.headers.forEach((value, key) => {
+          responseHeaders.push(`${key}: ${value}`);
+        });
 
         // Status
-        const statusColor = response.ok ? 'text-accent-green' : 'text-accent-red';
-        statusEl.innerHTML = `<span class="${statusColor}">${response.status} ${response.statusText}</span>`;
-        timeEl.textContent = `${duration}ms`;
+        document.getElementById(`${id}-status-code`).textContent = response.status;
 
         // Body
         const contentType = response.headers.get('content-type') || '';
-        let responseText;
+        let bodyText;
+        let bodyJson;
 
         if (contentType.includes('application/json')) {
-          const json = await response.json();
-          responseBody.innerHTML = highlightJson(json);
+          bodyJson = await response.json();
+          bodyText = formatJson(bodyJson);
         } else if (contentType.includes('image/')) {
-          responseBody.innerHTML = `<span class="text-gray-500">[Binary image data - ${contentType}]</span>`;
+          bodyText = `[Binary image data - ${contentType}]`;
+          bodyJson = { type: contentType, size: 'binary' };
         } else {
-          responseText = await response.text();
-          responseBody.textContent = responseText;
+          bodyText = await response.text();
+          bodyJson = { text: bodyText };
         }
+
+        document.getElementById(`${id}-response-body`).innerHTML = bodyText;
+        document.getElementById(`${id}-response-headers`).textContent = responseHeaders.join('\n');
+
+        // Store for download
+        state.responses[id] = { body: bodyJson, headers: responseHeaders };
+
       } catch (error) {
-        statusEl.innerHTML = '<span class="text-accent-red">Error</span>';
-        responseBody.innerHTML = `<span class="text-accent-red">${error.message}</span>`;
+        document.getElementById(`${id}-status-code`).textContent = 'Error';
+        document.getElementById(`${id}-response-body`).textContent = error.message;
       }
     }
 
-    // Load and render OpenAPI spec
+    // Load OpenAPI spec
     async function loadSpec() {
       try {
         const response = await fetch('/openapi.json');
@@ -429,11 +546,10 @@
           }
         }
 
-        // Render sections
+        // Render
         const container = document.getElementById('api-sections');
         container.innerHTML = '';
 
-        // Render in tag order, then any remaining
         const renderedTags = new Set();
         let tagIndex = 0;
 
@@ -450,16 +566,13 @@
           }
         });
 
-        // Auto-expand first section
-        if (tagIndex > 0) {
-          toggleSection('section-0');
-        }
+        // Expand first section
+        if (tagIndex > 0) toggleSection('section-0');
 
       } catch (error) {
         document.getElementById('api-sections').innerHTML = `
-          <div class="text-center py-20 text-accent-red">
-            <p>Failed to load API specification</p>
-            <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+          <div class="text-center py-12 text-red-500">
+            Failed to load API specification: ${error.message}
           </div>
         `;
       }
