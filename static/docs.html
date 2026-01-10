@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Highlight.js for syntax highlighting (#20) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/languages/json.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -48,9 +52,9 @@
     }
   </script>
   <style>
-    body { background: #fafafa; }
+    /* Base body styling uses CSS variables for theme support */
     .endpoint-row { border-left-width: 3px; }
-    .code-block { background: #41444e; color: #fff; }
+    .code-block { background: var(--color-code-bg, #41444e); color: #fff; }
     .code-block .hljs-string { color: #a5d6a7; }
     .code-block .hljs-attr { color: #80cbc4; }
     .code-block .hljs-number { color: #f48fb1; }
@@ -68,20 +72,20 @@
 
     /* Table styling */
     .param-table th {
-      background: #fafafa;
+      background: var(--color-bg-tertiary, #fafafa);
       font-weight: 600;
       font-size: 12px;
-      color: #3b4151;
+      color: var(--color-text, #3b4151);
       text-transform: uppercase;
     }
     .param-table td, .param-table th {
-      border: 1px solid #d8dde7;
+      border: 1px solid var(--color-border, #d8dde7);
       padding: 10px;
     }
 
     /* Response description box */
     .response-desc {
-      background: #41444e;
+      background: var(--color-code-bg, #41444e);
       color: #fff;
       padding: 10px 15px;
       font-family: 'Source Code Pro', monospace;
@@ -90,48 +94,674 @@
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    ::-webkit-scrollbar-track { background: var(--color-bg-secondary, #f1f1f1); }
+    ::-webkit-scrollbar-thumb { background: var(--color-border, #c1c1c1); border-radius: 4px; }
+
+    /* Accessibility - Focus states (#28) */
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid #4990e2;
+      outline-offset: 2px;
+    }
+
+    /* Screen reader only (#29) */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    /* Mobile responsiveness (#31, #32) */
+    @media (max-width: 640px) {
+      .endpoint-row { margin-bottom: 0.5rem; }
+      .param-table { font-size: 11px; }
+      .param-table td, .param-table th { padding: 8px 6px; }
+      .code-block {
+        font-size: 11px;
+        padding: 8px 12px;
+        max-height: 200px;
+      }
+      pre { word-break: break-word; white-space: pre-wrap; }
+    }
+
+    /* Smooth transitions (#34, #43) */
+    button {
+      transition: all 0.2s ease-in-out;
+    }
+    svg {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .endpoint-row,
+    .endpoint-content {
+      transition: background-color 0.2s ease;
+    }
+
+    /* Input focus states (#36) */
+    .param-input:focus,
+    .request-body-input:focus,
+    .header-name:focus,
+    .header-value:focus {
+      outline: none;
+      border-color: #61affe !important;
+      box-shadow: 0 0 0 3px rgba(97, 175, 254, 0.15);
+    }
+    input:focus,
+    select:focus,
+    textarea:focus {
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* Dark mode support (#35) - Enhanced */
+    :root {
+      --color-bg: #fafafa;
+      --color-bg-secondary: #ffffff;
+      --color-bg-tertiary: #f7f7f7;
+      --color-text: #3b4151;
+      --color-text-secondary: #606060;
+      --color-text-tertiary: #9ca3af;
+      --color-border: #d8dde7;
+      --color-code-bg: #41444e;
+      --color-get-bg: #ebf3fb;
+      --color-post-bg: #e8f6f0;
+      --color-put-bg: #fbf1e6;
+      --color-patch-bg: #e9faf6;
+      --color-delete-bg: #fbe7e7;
+      --color-url-bg: #ebf3fb;
+      --color-modal-bg: #ffffff;
+    }
+
+    /* Dark mode variables */
+    .dark {
+      --color-bg: #0f172a;
+      --color-bg-secondary: #1e293b;
+      --color-bg-tertiary: #334155;
+      --color-text: #f1f5f9;
+      --color-text-secondary: #cbd5e1;
+      --color-text-tertiary: #94a3b8;
+      --color-border: #475569;
+      --color-code-bg: #0f172a;
+      --color-get-bg: rgba(97, 175, 254, 0.15);
+      --color-post-bg: rgba(73, 204, 144, 0.15);
+      --color-put-bg: rgba(252, 161, 48, 0.15);
+      --color-patch-bg: rgba(80, 227, 194, 0.15);
+      --color-delete-bg: rgba(249, 62, 62, 0.15);
+      --color-url-bg: rgba(97, 175, 254, 0.12);
+      --color-modal-bg: #1e293b;
+    }
+
+    /* Apply dark mode via class OR system preference */
+    @media (prefers-color-scheme: dark) {
+      html:not(.light) {
+        --color-bg: #0f172a;
+        --color-bg-secondary: #1e293b;
+        --color-bg-tertiary: #334155;
+        --color-text: #f1f5f9;
+        --color-text-secondary: #cbd5e1;
+        --color-text-tertiary: #94a3b8;
+        --color-border: #475569;
+        --color-code-bg: #0f172a;
+        --color-get-bg: rgba(97, 175, 254, 0.15);
+        --color-post-bg: rgba(73, 204, 144, 0.15);
+        --color-put-bg: rgba(252, 161, 48, 0.15);
+        --color-patch-bg: rgba(80, 227, 194, 0.15);
+        --color-delete-bg: rgba(249, 62, 62, 0.15);
+        --color-url-bg: rgba(97, 175, 254, 0.12);
+        --color-modal-bg: #1e293b;
+      }
+    }
+
+    /* Theme transition */
+    html {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    /* Dark mode element overrides */
+    .dark body,
+    html:not(.light) body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    /* Background overrides */
+    .dark .bg-white,
+    html:not(.light) .bg-white { background-color: var(--color-bg-secondary) !important; }
+
+    .dark .bg-gray-50,
+    html:not(.light) .bg-gray-50 { background-color: var(--color-bg-tertiary) !important; }
+
+    .dark .bg-gray-100,
+    html:not(.light) .bg-gray-100 { background-color: var(--color-bg-tertiary) !important; }
+
+    .dark .bg-gray-200,
+    html:not(.light) .bg-gray-200 { background-color: var(--color-border) !important; }
+
+    /* Method-specific background overrides */
+    .dark .bg-swagger-get-bg,
+    html:not(.light) .bg-swagger-get-bg { background-color: var(--color-get-bg) !important; }
+
+    .dark .bg-swagger-post-bg,
+    html:not(.light) .bg-swagger-post-bg { background-color: var(--color-post-bg) !important; }
+
+    .dark .bg-swagger-put-bg,
+    html:not(.light) .bg-swagger-put-bg { background-color: var(--color-put-bg) !important; }
+
+    .dark .bg-swagger-patch-bg,
+    html:not(.light) .bg-swagger-patch-bg { background-color: var(--color-patch-bg) !important; }
+
+    .dark .bg-swagger-delete-bg,
+    html:not(.light) .bg-swagger-delete-bg { background-color: var(--color-delete-bg) !important; }
+
+    /* Colored accent backgrounds */
+    .dark .bg-blue-50,
+    html:not(.light) .bg-blue-50 { background-color: rgba(97, 175, 254, 0.15) !important; }
+
+    .dark .bg-red-50,
+    html:not(.light) .bg-red-50 { background-color: rgba(249, 62, 62, 0.12) !important; }
+
+    .dark .bg-red-50\/50,
+    html:not(.light) .bg-red-50\/50 { background-color: rgba(249, 62, 62, 0.08) !important; }
+
+    .dark .bg-red-100,
+    html:not(.light) .bg-red-100 { background-color: rgba(249, 62, 62, 0.2) !important; }
+
+    .dark .bg-green-500,
+    html:not(.light) .bg-green-500 { background-color: #22c55e !important; }
+
+    /* Text overrides */
+    .dark .text-swagger-text,
+    html:not(.light) .text-swagger-text { color: var(--color-text) !important; }
+
+    .dark .text-gray-400,
+    html:not(.light) .text-gray-400 { color: var(--color-text-tertiary) !important; }
+
+    .dark .text-gray-500,
+    html:not(.light) .text-gray-500 { color: var(--color-text-secondary) !important; }
+
+    .dark .text-gray-600,
+    html:not(.light) .text-gray-600 { color: var(--color-text-secondary) !important; }
+
+    .dark .text-gray-700,
+    html:not(.light) .text-gray-700 { color: var(--color-text) !important; }
+
+    .dark .text-red-600,
+    html:not(.light) .text-red-600 { color: #f87171 !important; }
+
+    .dark .text-red-700,
+    html:not(.light) .text-red-700 { color: #fca5a5 !important; }
+
+    .dark .text-blue-600,
+    html:not(.light) .text-blue-600 { color: #93c5fd !important; }
+
+    /* Border overrides */
+    .dark .border-swagger-border,
+    html:not(.light) .border-swagger-border { border-color: var(--color-border) !important; }
+
+    .dark .border-swagger-get,
+    html:not(.light) .border-swagger-get { border-color: #61affe !important; }
+
+    .dark .border-swagger-post,
+    html:not(.light) .border-swagger-post { border-color: #49cc90 !important; }
+
+    .dark .border-swagger-put,
+    html:not(.light) .border-swagger-put { border-color: #fca130 !important; }
+
+    .dark .border-swagger-patch,
+    html:not(.light) .border-swagger-patch { border-color: #50e3c2 !important; }
+
+    .dark .border-swagger-delete,
+    html:not(.light) .border-swagger-delete { border-color: #f93e3e !important; }
+
+    /* Code blocks */
+    .dark .code-block,
+    html:not(.light) .code-block { background-color: var(--color-code-bg) !important; border: 1px solid var(--color-border); }
+
+    /* Form elements */
+    .dark input,
+    .dark select,
+    .dark textarea,
+    html:not(.light) input,
+    html:not(.light) select,
+    html:not(.light) textarea {
+      background-color: var(--color-bg-secondary) !important;
+      color: var(--color-text) !important;
+      border-color: var(--color-border) !important;
+    }
+
+    .dark input::placeholder,
+    html:not(.light) input::placeholder {
+      color: var(--color-text-tertiary) !important;
+    }
+
+    /* Table overrides */
+    .dark .param-table th,
+    html:not(.light) .param-table th {
+      background-color: var(--color-bg-tertiary) !important;
+      color: var(--color-text) !important;
+      border-color: var(--color-border) !important;
+    }
+
+    .dark .param-table td,
+    html:not(.light) .param-table td {
+      border-color: var(--color-border) !important;
+    }
+
+    /* Modal */
+    .dark #auth-modal > div,
+    html:not(.light) #auth-modal > div {
+      background-color: var(--color-modal-bg) !important;
+    }
+
+    /* Scrollbar dark mode */
+    .dark ::-webkit-scrollbar-track,
+    html:not(.light) ::-webkit-scrollbar-track { background: var(--color-bg-secondary); }
+
+    .dark ::-webkit-scrollbar-thumb,
+    html:not(.light) ::-webkit-scrollbar-thumb { background: var(--color-border); }
+
+    /* Hover states */
+    .dark .hover\:bg-gray-50:hover,
+    html:not(.light) .hover\:bg-gray-50:hover { background-color: var(--color-bg-tertiary) !important; }
+
+    .dark .hover\:bg-blue-100:hover,
+    html:not(.light) .hover\:bg-blue-100:hover { background-color: rgba(97, 175, 254, 0.25) !important; }
+
+    .dark .hover\:bg-red-100:hover,
+    html:not(.light) .hover\:bg-red-100:hover { background-color: rgba(249, 62, 62, 0.25) !important; }
+
+    /* Method-specific hover backgrounds */
+    .dark .hover\:bg-swagger-get-bg:hover,
+    html:not(.light) .hover\:bg-swagger-get-bg:hover { background-color: rgba(97, 175, 254, 0.25) !important; }
+
+    .dark .hover\:bg-swagger-post-bg:hover,
+    html:not(.light) .hover\:bg-swagger-post-bg:hover { background-color: rgba(73, 204, 144, 0.25) !important; }
+
+    .dark .hover\:bg-swagger-put-bg:hover,
+    html:not(.light) .hover\:bg-swagger-put-bg:hover { background-color: rgba(252, 161, 48, 0.25) !important; }
+
+    .dark .hover\:bg-swagger-patch-bg:hover,
+    html:not(.light) .hover\:bg-swagger-patch-bg:hover { background-color: rgba(80, 227, 194, 0.25) !important; }
+
+    .dark .hover\:bg-swagger-delete-bg:hover,
+    html:not(.light) .hover\:bg-swagger-delete-bg:hover { background-color: rgba(249, 62, 62, 0.25) !important; }
+
+    /* Theme toggle button */
+    .theme-toggle {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--color-bg-tertiary);
+    }
+
+    .theme-toggle svg {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .theme-toggle .sun-icon {
+      position: absolute;
+      color: #f59e0b;
+    }
+
+    .theme-toggle .moon-icon {
+      position: absolute;
+      color: #6366f1;
+    }
+
+    /* Light mode: show sun, hide moon */
+    .theme-toggle .sun-icon { opacity: 1; transform: rotate(0deg) scale(1); }
+    .theme-toggle .moon-icon { opacity: 0; transform: rotate(-90deg) scale(0); }
+
+    /* Dark mode: show moon, hide sun */
+    .dark .theme-toggle .sun-icon,
+    html:not(.light) .theme-toggle .sun-icon { opacity: 0; transform: rotate(90deg) scale(0); }
+
+    .dark .theme-toggle .moon-icon,
+    html:not(.light) .theme-toggle .moon-icon { opacity: 1; transform: rotate(0deg) scale(1); }
+
+    @media (prefers-color-scheme: light) {
+      .theme-toggle .sun-icon { opacity: 1; transform: rotate(0deg) scale(1); }
+      .theme-toggle .moon-icon { opacity: 0; transform: rotate(-90deg) scale(0); }
+    }
+
+    /* Try it out button - make it prominent */
+    .try-it-out-btn {
+      background: linear-gradient(135deg, #4990e2 0%, #61affe 100%);
+      color: white !important;
+      font-weight: 600;
+      border: none !important;
+      box-shadow: 0 2px 4px rgba(73, 144, 226, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .try-it-out-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(73, 144, 226, 0.4);
+      background: linear-gradient(135deg, #3d7fc7 0%, #4990e2 100%);
+    }
+
+    /* Cancel state for try-it-out button */
+    .try-it-out-btn.active {
+      background: linear-gradient(135deg, #dc2626 0%, #f93e3e 100%) !important;
+      box-shadow: 0 2px 4px rgba(249, 62, 62, 0.3);
+    }
+
+    .try-it-out-btn.active:hover {
+      box-shadow: 0 4px 8px rgba(249, 62, 62, 0.4);
+      background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
+    }
+
+    /* Endpoint path text - ensure high visibility */
+    .endpoint-path {
+      color: var(--color-text) !important;
+      opacity: 1 !important;
+    }
+
+    .dark .endpoint-path,
+    html:not(.light) .endpoint-path {
+      color: #f8fafc !important;
+      text-shadow: 0 0 1px rgba(255,255,255,0.1);
+    }
+
+    /* Response section animations */
+    @keyframes responseSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .response-animate {
+      animation: responseSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* Staggered animation for child elements */
+    .response-animate > div:nth-child(1) { animation-delay: 0ms; }
+    .response-animate > div:nth-child(2) { animation-delay: 50ms; }
+    .response-animate > div:nth-child(3) { animation-delay: 100ms; }
+
+    /* Action buttons with icons */
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .action-btn-outline {
+      background: transparent;
+      border: 1px solid var(--color-border, #d8dde7);
+      color: var(--color-text-secondary, #606060);
+    }
+
+    .action-btn-outline:hover {
+      background: var(--color-bg-tertiary, #f7f7f7);
+      border-color: var(--color-text-secondary, #606060);
+      transform: translateY(-1px);
+    }
+
+    .action-btn-outline:active {
+      transform: translateY(0);
+    }
+
+    .action-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Copy success state */
+    .action-btn.copied {
+      background: rgba(73, 204, 144, 0.15);
+      border-color: #49cc90;
+      color: #49cc90;
+    }
+
+    /* Response status badge */
+    .response-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(73, 204, 144, 0.15), rgba(73, 204, 144, 0.08));
+      border: 1px solid rgba(73, 204, 144, 0.3);
+      color: #49cc90;
+    }
+
+    .dark .response-status-badge {
+      background: linear-gradient(135deg, rgba(73, 204, 144, 0.2), rgba(73, 204, 144, 0.1));
+      border-color: rgba(73, 204, 144, 0.4);
+    }
+
+    .response-status-badge svg.animate-spin {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Response code block */
+    .response-code-block {
+      background: var(--color-code-bg);
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+      line-height: 1.6;
+      overflow-x: auto;
+      max-height: 320px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 0;
+    }
+
+    /* Response section container */
+    .response-section {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    /* Print styles (#39) */
+    @media print {
+      header { border-bottom: 2px solid #000; page-break-after: avoid; }
+      .endpoint-row svg,
+      button:not(.endpoint-row button),
+      select,
+      #auth-modal { display: none !important; }
+      .endpoint-content {
+        max-height: none !important;
+        display: block !important;
+      }
+      .endpoint-content.open { display: block !important; }
+      pre {
+        white-space: pre-wrap;
+        page-break-inside: avoid;
+        max-height: none !important;
+      }
+      .code-block {
+        background: #f5f5f5 !important;
+        color: #333 !important;
+        border: 1px solid #ccc;
+      }
+      section { page-break-inside: avoid; }
+    }
   </style>
 </head>
 <body class="font-sans text-swagger-text">
   <div class="max-w-5xl mx-auto px-4 py-8">
-    <!-- Header -->
+    <!-- Header (#33 - mobile responsive) -->
     <header class="mb-8 pb-6 border-b border-swagger-border">
-      <div class="flex items-center gap-2 mb-2">
-        <h1 class="text-4xl font-bold text-swagger-text">tlsfingerprint.com</h1>
-        <span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">1.0.0</span>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+        <h1 class="text-3xl sm:text-4xl font-bold text-swagger-text">tlsfingerprint.com</h1>
+        <span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded w-fit">1.0.0</span>
       </div>
-      <p class="text-gray-600 mb-4">[ Base URL: tlsfingerprint.com ]</p>
-      <p class="text-swagger-text mb-4">A simple HTTP Request & Response Service with TLS fingerprinting.</p>
+      <p class="text-gray-600 mb-4 text-sm sm:text-base">[ Base URL: tlsfingerprint.com ]</p>
+      <p class="text-swagger-text mb-4 text-sm sm:text-base">A simple HTTP Request & Response Service with TLS fingerprinting.</p>
 
-      <div class="flex items-center gap-4 mb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
         <span class="text-sm text-gray-600">Run locally:</span>
-        <code class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-mono">$ docker run -p 8443:8443 tlsfingerprint/httpbin</code>
+        <code class="bg-gray-800 text-white px-3 py-1 rounded text-xs sm:text-sm font-mono overflow-x-auto">$ docker run -p 8443:8443 tlsfingerprint/httpbin</code>
       </div>
 
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-semibold">Schemes</span>
-        <select id="scheme-select" class="border border-swagger-border rounded px-2 py-1 text-sm bg-white">
-          <option value="https">HTTPS</option>
-          <option value="http">HTTP</option>
-        </select>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold">Schemes</span>
+          <select id="scheme-select" class="border border-swagger-border rounded px-2 py-1 text-sm bg-white">
+            <option value="https">HTTPS</option>
+            <option value="http">HTTP</option>
+          </select>
+        </div>
+        <button onclick="openAuthModal()" class="px-4 py-2 text-sm border border-swagger-border rounded hover:bg-gray-50 font-semibold text-swagger-execute w-fit">
+          Authorize
+        </button>
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" class="theme-toggle border border-swagger-border rounded" aria-label="Toggle theme" title="Toggle light/dark mode">
+          <svg class="sun-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg class="moon-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
       </div>
     </header>
 
-    <!-- API Sections -->
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" onclick="closeAuthModal(event)">
+      <div class="absolute right-0 top-0 h-full w-96 bg-white shadow-lg p-6 overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-swagger-text">Available authorizations</h2>
+          <button onclick="closeAuthModal()" class="text-2xl text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+
+        <div class="space-y-4">
+          <div class="border border-swagger-border rounded p-4">
+            <h3 class="text-sm font-semibold text-swagger-text mb-2">Bearer Token</h3>
+            <input type="password" id="auth-bearer" placeholder="Enter bearer token"
+              class="w-full border border-swagger-border rounded px-3 py-2 text-sm font-mono mb-2">
+            <button onclick="setAuthBearer()" class="w-full bg-swagger-execute text-white text-sm font-semibold py-2 rounded hover:opacity-90">
+              Apply
+            </button>
+          </div>
+
+          <div class="border border-swagger-border rounded p-4">
+            <h3 class="text-sm font-semibold text-swagger-text mb-2">API Key</h3>
+            <input type="text" id="auth-apikey" placeholder="Enter API key"
+              class="w-full border border-swagger-border rounded px-3 py-2 text-sm font-mono mb-2">
+            <select id="auth-apikey-in" class="w-full border border-swagger-border rounded px-3 py-2 text-sm mb-2">
+              <option value="header">Header (X-API-Key)</option>
+              <option value="query">Query Parameter</option>
+            </select>
+            <button onclick="setAuthApiKey()" class="w-full bg-swagger-execute text-white text-sm font-semibold py-2 rounded hover:opacity-90">
+              Apply
+            </button>
+          </div>
+
+          <div class="border-t border-swagger-border pt-4">
+            <button onclick="clearAuth()" class="w-full bg-gray-400 text-white text-sm font-semibold py-2 rounded hover:opacity-90">
+              Clear All Authorizations
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Sections (#40 - enhanced loading) -->
     <main id="api-sections">
-      <div class="flex items-center justify-center py-12 text-gray-500">
-        <svg class="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+      <div class="flex flex-col items-center justify-center py-16 text-gray-500">
+        <svg class="w-8 h-8 animate-spin text-swagger-execute mb-3" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
         </svg>
-        Loading...
+        <span class="text-sm font-semibold text-swagger-text">Loading API specification...</span>
+        <span class="text-xs text-gray-400 mt-1">Fetching /openapi.json</span>
       </div>
     </main>
   </div>
 
   <script>
+    // Theme management - initialize before DOM loads to prevent flash
+    (function initTheme() {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      if (saved === 'dark' || (!saved && prefersDark)) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else if (saved === 'light') {
+        document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark') ||
+        (!html.classList.contains('light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+      if (isDark) {
+        // Switch to light
+        html.classList.remove('dark');
+        html.classList.add('light');
+        localStorage.setItem('theme', 'light');
+      } else {
+        // Switch to dark
+        html.classList.remove('light');
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      const saved = localStorage.getItem('theme');
+      if (!saved) {
+        // Only auto-switch if user hasn't manually set a preference
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.remove('light');
+        }
+      }
+    });
+
     // Method colors configuration
     const methodConfig = {
       get: { bg: 'bg-swagger-get-bg', border: 'border-swagger-get', badge: 'bg-swagger-get', hoverBg: 'hover:bg-swagger-get-bg' },
@@ -148,39 +778,319 @@
       responses: {},
     };
 
+    // Authentication state (#4)
+    const authState = {
+      bearerToken: null,
+      apiKey: null,
+      apiKeyIn: 'header',
+    };
+
+    // Auth modal functions (#4)
+    function openAuthModal() {
+      document.getElementById('auth-modal').classList.remove('hidden');
+    }
+
+    function closeAuthModal(event) {
+      if (!event || event.target.id === 'auth-modal') {
+        document.getElementById('auth-modal').classList.add('hidden');
+      }
+    }
+
+    function setAuthBearer() {
+      authState.bearerToken = document.getElementById('auth-bearer').value;
+      if (authState.bearerToken) closeAuthModal();
+    }
+
+    function setAuthApiKey() {
+      authState.apiKey = document.getElementById('auth-apikey').value;
+      authState.apiKeyIn = document.getElementById('auth-apikey-in').value;
+      if (authState.apiKey) closeAuthModal();
+    }
+
+    function clearAuth() {
+      authState.bearerToken = null;
+      authState.apiKey = null;
+      authState.apiKeyIn = 'header';
+      document.getElementById('auth-bearer').value = '';
+      document.getElementById('auth-apikey').value = '';
+      document.getElementById('auth-apikey-in').value = 'header';
+    }
+
+    // Check if content-type is binary (#11)
+    function isBinaryContentType(contentType) {
+      const binaryTypes = [
+        'image/',
+        'audio/',
+        'video/',
+        'application/pdf',
+        'application/octet-stream',
+        'application/x-protobuf',
+        'application/x-gzip',
+        'application/zip',
+        'font/'
+      ];
+      return binaryTypes.some(type => contentType.includes(type));
+    }
+
+    // Update image metadata display (#15)
+    function updateImageMetadata(id) {
+      const img = document.getElementById(`${id}-image-preview`);
+      if (img && img.naturalWidth) {
+        document.getElementById(`${id}-image-dims`).classList.remove('hidden');
+        document.getElementById(`${id}-image-dims-text`).textContent = `${img.naturalWidth}x${img.naturalHeight}px`;
+      }
+    }
+
+    // Toast notification (#9)
+    function showToast(message, type = 'success') {
+      const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        info: 'bg-blue-500'
+      };
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 ${colors[type]} text-white px-4 py-3 rounded shadow-lg flex items-center gap-2 z-50`;
+      toast.innerHTML = type === 'success'
+        ? `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span>${message}</span>`
+        : `<span>${message}</span>`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Copy to clipboard (#10)
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard!', 'info');
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+
+    // Copy response JSON with visual feedback
+    async function copyResponseJson(id) {
+      const data = state.responses[id];
+      if (!data?.body) return;
+
+      const btn = document.getElementById(`${id}-copy-btn`);
+      try {
+        const json = typeof data.body === 'string' ? data.body : JSON.stringify(data.body, null, 2);
+        await navigator.clipboard.writeText(json);
+
+        // Visual feedback
+        if (btn) {
+          btn.classList.add('copied');
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Copied!`;
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = originalHTML;
+          }, 2000);
+        }
+        showToast('JSON copied to clipboard!', 'info');
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        showToast('Failed to copy', 'error');
+      }
+    }
+
     // Generate curl command
-    function generateCurl(method, url, headers = {}) {
+    function generateCurl(method, url, headers = {}, body = null) {
       let cmd = `curl -X ${method.toUpperCase()} "${url}"`;
       Object.entries(headers).forEach(([key, val]) => {
         cmd += ` \\\n  -H "${key}: ${val}"`;
       });
+      if (body) {
+        cmd += ` \\\n  -d '${body}'`;
+      }
       return cmd;
     }
 
-    // Download response as JSON
+    // Download response (#12-14)
     function downloadResponse(id) {
       const data = state.responses[id];
       if (!data) return;
-      const blob = new Blob([JSON.stringify(data.body, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'response.json';
-      a.click();
-      URL.revokeObjectURL(url);
+
+      const mimeToExt = {
+        'image/png': 'png',
+        'image/jpeg': 'jpg',
+        'image/gif': 'gif',
+        'image/webp': 'webp',
+        'application/pdf': 'pdf',
+        'application/zip': 'zip',
+        'audio/mpeg': 'mp3',
+        'video/mp4': 'mp4'
+      };
+
+      const contentType = data.contentType || '';
+      const ext = Object.entries(mimeToExt).find(([mime]) => contentType.includes(mime))?.[1] || 'json';
+      const filename = `response.${ext}`;
+
+      let url;
+      try {
+        if (data.body?.dataUrl) {
+          // Binary data - use the stored blob URL
+          const a = document.createElement('a');
+          a.href = data.body.dataUrl;
+          a.download = filename;
+          a.click();
+        } else {
+          // JSON data
+          const blob = new Blob([JSON.stringify(data.body, null, 2)], { type: 'application/json' });
+          url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+        }
+      } finally {
+        if (url) URL.revokeObjectURL(url);
+      }
     }
 
-    // Format JSON with syntax highlighting
+    // Switch response tabs (Example/Schema) (#17)
+    function switchResponseTab(id, tab) {
+      const exampleTab = document.getElementById(`${id}-example-tab`);
+      const schemaTab = document.getElementById(`${id}-schema-tab`);
+      const exampleBtn = document.querySelector(`[data-endpoint="${id}"][data-tab="example"]`);
+      const schemaBtn = document.querySelector(`[data-endpoint="${id}"][data-tab="schema"]`);
+
+      if (tab === 'example') {
+        exampleTab?.classList.remove('hidden');
+        schemaTab?.classList.add('hidden');
+        exampleBtn?.classList.add('border-swagger-execute', 'text-swagger-execute', 'font-semibold');
+        exampleBtn?.classList.remove('border-transparent', 'text-gray-500');
+        schemaBtn?.classList.remove('border-swagger-execute', 'text-swagger-execute', 'font-semibold');
+        schemaBtn?.classList.add('border-transparent', 'text-gray-500');
+      } else {
+        exampleTab?.classList.add('hidden');
+        schemaTab?.classList.remove('hidden');
+        schemaBtn?.classList.add('border-swagger-execute', 'text-swagger-execute', 'font-semibold');
+        schemaBtn?.classList.remove('border-transparent', 'text-gray-500');
+        exampleBtn?.classList.remove('border-swagger-execute', 'text-swagger-execute', 'font-semibold');
+        exampleBtn?.classList.add('border-transparent', 'text-gray-500');
+      }
+    }
+
+    // Render schema as formatted text (#17)
+    function renderSchema(schema) {
+      if (!schema) return '{ }';
+      const lines = [];
+
+      function processSchema(s, indent = 0) {
+        const pad = '  '.repeat(indent);
+        if (s.type === 'object' && s.properties) {
+          lines.push(`${pad}{`);
+          const props = Object.entries(s.properties);
+          props.forEach(([key, prop], i) => {
+            const comma = i < props.length - 1 ? ',' : '';
+            const typeStr = prop.type || 'any';
+            const desc = prop.description ? ` // ${prop.description}` : '';
+            if (prop.type === 'object' && prop.properties) {
+              lines.push(`${pad}  "${key}": `);
+              processSchema(prop, indent + 1);
+              lines[lines.length - 1] += comma;
+            } else if (prop.type === 'array') {
+              const itemType = prop.items?.type || 'any';
+              lines.push(`${pad}  "${key}": [${itemType}]${comma}${desc}`);
+            } else {
+              lines.push(`${pad}  "${key}": ${typeStr}${comma}${desc}`);
+            }
+          });
+          lines.push(`${pad}}`);
+        } else if (s.type === 'array' && s.items) {
+          lines.push(`${pad}[`);
+          processSchema(s.items, indent + 1);
+          lines.push(`${pad}]`);
+        } else {
+          lines.push(`${pad}${s.type || 'any'}`);
+        }
+      }
+
+      processSchema(schema);
+      return lines.join('\n');
+    }
+
+    // Format JSON with syntax highlighting (#20 - using highlight.js)
     function formatJson(obj) {
       const json = JSON.stringify(obj, null, 2);
+      // Use highlight.js if available, fallback to manual highlighting
+      if (typeof hljs !== 'undefined') {
+        try {
+          return hljs.highlight(json, { language: 'json', ignoreIllegals: true }).value;
+        } catch (e) {
+          // Fall back to manual highlighting on error
+        }
+      }
+      // Manual fallback highlighting
       return json
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"([^"]+)":/g, '<span class="text-cyan-300">"$1"</span>:')
-        .replace(/: "([^"]*)"/g, ': <span class="text-green-300">"$1"</span>')
-        .replace(/: (\d+)/g, ': <span class="text-pink-300">$1</span>')
-        .replace(/: (true|false|null)/g, ': <span class="text-yellow-300">$1</span>');
+        .replace(/"([^"]+)":/g, '<span class="hljs-attr">"$1"</span>:')
+        .replace(/: "([^"]*)"/g, ': <span class="hljs-string">"$1"</span>')
+        .replace(/: (\d+)/g, ': <span class="hljs-number">$1</span>')
+        .replace(/: (true|false|null)/g, ': <span class="hljs-literal">$1</span>');
+    }
+
+    // Custom headers functions (#5)
+    function addCustomHeader(id) {
+      const container = document.getElementById(`${id}-headers-container`);
+      if (!container.querySelector('.header-input-row')) {
+        container.innerHTML = '';
+      }
+      const headerId = `${id}-header-${Date.now()}`;
+      const html = `
+        <div class="header-input-row flex gap-2 mb-2" id="${headerId}">
+          <input type="text" placeholder="Header name" class="header-name flex-1 border border-swagger-border rounded px-2 py-1 text-sm font-mono" id="${headerId}-name">
+          <input type="text" placeholder="Value" class="header-value flex-1 border border-swagger-border rounded px-2 py-1 text-sm font-mono" id="${headerId}-value">
+          <button onclick="removeHeader('${headerId}')" class="px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100">x</button>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function removeHeader(headerId) {
+      const headerRow = document.getElementById(headerId);
+      if (headerRow) {
+        const container = headerRow.parentElement;
+        headerRow.remove();
+        if (!container.querySelector('.header-input-row')) {
+          container.innerHTML = '<div class="text-xs text-gray-500">No custom headers added</div>';
+        }
+      }
+    }
+
+    // Get request body placeholder from schema (#3)
+    function getRequestBodyPlaceholder(requestBody) {
+      if (!requestBody) return '{}';
+      const jsonContent = requestBody.content?.['application/json'];
+      if (jsonContent?.schema?.example) {
+        return JSON.stringify(jsonContent.schema.example, null, 2);
+      }
+      if (jsonContent?.example) {
+        return JSON.stringify(jsonContent.example, null, 2);
+      }
+      if (jsonContent?.schema?.properties) {
+        const placeholder = {};
+        for (const [key, prop] of Object.entries(jsonContent.schema.properties)) {
+          if (prop.example !== undefined) {
+            placeholder[key] = prop.example;
+          } else if (prop.type === 'string') {
+            placeholder[key] = '';
+          } else if (prop.type === 'number' || prop.type === 'integer') {
+            placeholder[key] = 0;
+          } else if (prop.type === 'boolean') {
+            placeholder[key] = false;
+          } else if (prop.type === 'array') {
+            placeholder[key] = [];
+          } else if (prop.type === 'object') {
+            placeholder[key] = {};
+          }
+        }
+        return JSON.stringify(placeholder, null, 2);
+      }
+      return '{}';
     }
 
     // Build endpoint HTML
@@ -190,23 +1100,32 @@
       const hasParams = params.length > 0;
       const summary = details.summary || '';
       const description = details.description || summary;
+      const requestBody = details.requestBody;
+      const hasRequestBody = ['post', 'put', 'patch'].includes(method.toLowerCase());
+      const requestBodyPlaceholder = hasRequestBody ? getRequestBodyPlaceholder(requestBody) : '';
 
       return `
         <div class="endpoint-row border ${config.border} ${config.bg} rounded mb-1" data-id="${id}">
-          <!-- Header Row -->
-          <div class="flex items-center gap-3 px-4 py-2 cursor-pointer ${config.hoverBg}" onclick="toggleEndpoint('${id}')">
-            <span class="${config.badge} text-white text-xs font-bold uppercase px-3 py-1 rounded min-w-[80px] text-center">
+          <!-- Header Row (#27 - accessible) -->
+          <button
+            id="${id}-btn"
+            class="w-full flex items-center gap-3 px-4 py-2 cursor-pointer ${config.hoverBg} focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 rounded-t text-left"
+            onclick="toggleEndpoint('${id}')"
+            aria-expanded="false"
+            aria-controls="${id}-content"
+            aria-label="${method.toUpperCase()} ${path} - ${summary}">
+            <span class="${config.badge} text-white text-xs font-extrabold uppercase px-3 py-1.5 rounded-md min-w-[70px] text-center shadow-sm tracking-wide font-mono" aria-hidden="true">
               ${method}
             </span>
-            <span class="font-mono text-base text-swagger-text font-semibold">${path}</span>
+            <span class="endpoint-path font-mono text-base font-semibold">${path}</span>
             <span class="text-gray-500 text-sm flex-1">${summary}</span>
-            <svg class="w-4 h-4 text-gray-400 transform transition-transform" id="${id}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-gray-400 transform transition-transform" id="${id}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
-          </div>
+          </button>
 
           <!-- Expanded Content -->
-          <div class="endpoint-content border-t border-swagger-border bg-white" id="${id}-content">
+          <div class="endpoint-content border-t border-swagger-border bg-white" id="${id}-content" role="region" aria-labelledby="${id}-btn">
             <div class="p-4">
               ${description ? `<p class="text-sm text-gray-600 mb-4">${description}</p>` : ''}
 
@@ -214,7 +1133,7 @@
               <div class="mb-4" id="${id}-params-section">
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="text-sm font-semibold text-swagger-text">Parameters</h4>
-                  <button onclick="toggleTryItOut('${id}')" id="${id}-try-btn" class="px-4 py-1 text-sm border border-swagger-border text-swagger-text rounded hover:bg-gray-50">
+                  <button onclick="toggleTryItOut('${id}')" id="${id}-try-btn" class="try-it-out-btn px-4 py-1.5 text-sm rounded">
                     Try it out
                   </button>
                 </div>
@@ -229,22 +1148,53 @@
                     </thead>
                     <tbody>
                       ${params.map(p => `
-                        <tr>
-                          <td class="align-top">
-                            <div class="font-semibold text-swagger-text">${p.name}</div>
+                        <tr class="${p.required ? 'bg-red-50/50' : ''}">
+                          <td class="align-top ${p.required ? 'border-l-2 border-red-500' : ''}">
+                            <div class="font-semibold text-swagger-text flex items-center gap-2">
+                              ${p.name}
+                              ${p.required ? '<span class="px-1.5 py-0.5 text-[10px] bg-red-100 text-red-700 rounded font-semibold uppercase">required</span>' : ''}
+                            </div>
                             <div class="text-xs text-gray-500">${p.schema?.type || 'string'}</div>
                             <div class="text-xs text-gray-400">(${p.in})</div>
-                            ${p.required ? '<div class="text-xs text-red-500">* required</div>' : ''}
                           </td>
                           <td>
-                            <input type="text"
-                              id="${id}-param-${p.name}"
-                              class="param-input w-full border border-swagger-border rounded px-3 py-2 text-sm font-mono hidden"
-                              placeholder="${p.schema?.type || 'value'}"
-                              ${p.schema?.minimum ? `min="${p.schema.minimum}"` : ''}
-                              ${p.schema?.maximum ? `max="${p.schema.maximum}"` : ''}
-                            >
-                            <span class="param-desc text-gray-500 text-sm">${p.description || '-'}</span>
+                            ${p.schema?.format === 'binary' || p.schema?.type === 'file' ? `
+                              <input type="file"
+                                id="${id}-param-${p.name}"
+                                class="param-input w-full border border-swagger-border rounded px-3 py-2 text-sm hidden"
+                              >
+                            ` : p.schema?.enum ? `
+                              <select
+                                id="${id}-param-${p.name}"
+                                class="param-input w-full border border-swagger-border rounded px-3 py-2 text-sm hidden"
+                              >
+                                <option value="">-- Select --</option>
+                                ${p.schema.enum.map(e => `<option value="${e}">${e}</option>`).join('')}
+                              </select>
+                            ` : `
+                              <input type="text"
+                                id="${id}-param-${p.name}"
+                                class="param-input w-full border border-swagger-border rounded px-3 py-2 text-sm font-mono hidden"
+                                placeholder="${p.schema?.type || 'value'}"
+                                ${p.schema?.minimum ? `min="${p.schema.minimum}"` : ''}
+                                ${p.schema?.maximum ? `max="${p.schema.maximum}"` : ''}
+                              >
+                            `}
+                            <div class="param-desc text-gray-500 text-sm">
+                              ${p.description || '-'}
+                              ${p.schema?.example !== undefined ? `
+                                <div class="mt-1 text-xs">
+                                  <span class="text-blue-600">Example:</span>
+                                  <code class="bg-blue-50 px-1 rounded font-mono">${p.schema.example}</code>
+                                </div>
+                              ` : ''}
+                              ${p.schema?.default !== undefined ? `
+                                <div class="text-xs">
+                                  <span class="text-gray-500">Default:</span>
+                                  <code class="bg-gray-100 px-1 rounded font-mono">${p.schema.default}</code>
+                                </div>
+                              ` : ''}
+                            </div>
                           </td>
                         </tr>
                       `).join('')}
@@ -253,25 +1203,59 @@
                 ` : '<p class="text-sm text-gray-500">No parameters</p>'}
               </div>
 
-              <!-- Execute/Clear Buttons (hidden initially) -->
+              ${hasRequestBody ? `
+              <!-- Request Body Section (#3) -->
+              <div class="mb-4 border-b border-swagger-border pb-4" id="${id}-request-body-section">
+                <h4 class="text-sm font-semibold text-swagger-text mb-2">Request body</h4>
+                <textarea
+                  id="${id}-request-body"
+                  class="request-body-input w-full border border-swagger-border rounded px-3 py-2 text-sm font-mono hidden"
+                  rows="10"
+                  placeholder='${requestBodyPlaceholder.replace(/'/g, "&#39;")}'
+                ></textarea>
+                <div class="text-xs text-gray-500 request-body-desc" id="${id}-request-body-desc">
+                  ${requestBody?.description || 'Request payload (application/json)'}
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Custom Headers Section (#5) -->
+              <div class="mb-4 border-b border-swagger-border pb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-sm font-semibold text-swagger-text">Headers</h4>
+                  <button onclick="addCustomHeader('${id}')" class="px-2 py-1 text-xs bg-blue-50 border border-swagger-get text-swagger-get rounded hover:bg-blue-100">
+                    Add Header
+                  </button>
+                </div>
+                <div id="${id}-headers-container">
+                  <div class="text-xs text-gray-500">No custom headers added</div>
+                </div>
+              </div>
+
+              <!-- Execute/Clear Buttons (#37 - improved styling) -->
               <div class="hidden mb-4" id="${id}-execute-section">
-                <div class="flex gap-0">
+                <div class="flex gap-2">
                   <button onclick="executeRequest('${path}', '${method}', '${id}')"
-                    class="flex-1 bg-swagger-execute text-white font-bold py-2 px-4 text-sm hover:opacity-90">
+                    class="flex-1 bg-swagger-execute text-white font-bold py-3 px-4 text-sm rounded-md hover:bg-opacity-90 shadow-sm">
                     Execute
                   </button>
                   <button onclick="clearResponse('${id}')"
-                    class="flex-1 bg-gray-400 text-white font-bold py-2 px-4 text-sm hover:opacity-90">
+                    class="flex-1 bg-gray-500 text-white font-bold py-3 px-4 text-sm rounded-md hover:bg-opacity-90 shadow-sm">
                     Clear
                   </button>
                 </div>
               </div>
 
               <!-- Response Display (hidden initially) -->
-              <div class="hidden" id="${id}-response-display">
-                <!-- Curl -->
+              <div class="hidden" id="${id}-response-display" style="opacity: 0;">
+                <!-- Curl (#10 copy button) -->
                 <div class="mb-4">
-                  <h5 class="text-sm font-semibold text-swagger-text mb-2">Curl</h5>
+                  <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-sm font-semibold text-swagger-text">Curl</h5>
+                    <button onclick="copyToClipboard(document.getElementById('${id}-curl').textContent)" class="px-3 py-1 text-xs border border-swagger-border rounded hover:bg-gray-50">
+                      Copy
+                    </button>
+                  </div>
                   <pre class="code-block rounded p-4 text-sm font-mono overflow-x-auto whitespace-pre-wrap" id="${id}-curl"></pre>
                 </div>
 
@@ -283,44 +1267,43 @@
 
                 <!-- Server Response -->
                 <div class="mb-4">
-                  <h5 class="text-sm font-semibold text-swagger-text mb-2">Server response</h5>
-                  <table class="w-full border-collapse text-sm">
-                    <thead>
-                      <tr class="border-b border-swagger-border">
-                        <th class="text-left py-2 w-20 text-swagger-text">Code</th>
-                        <th class="text-left py-2 text-swagger-text">Details</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td class="py-3 align-top font-semibold" id="${id}-status-code">-</td>
-                        <td class="py-3">
-                          <!-- Response Body -->
-                          <div class="mb-4">
-                            <div class="flex items-center justify-between mb-2">
-                              <span class="text-sm font-semibold text-swagger-text">Response body</span>
-                              <button onclick="downloadResponse('${id}')" class="px-3 py-1 text-xs border border-swagger-border rounded hover:bg-gray-50">
-                                Download
-                              </button>
-                            </div>
-                            <pre class="code-block rounded p-4 text-sm font-mono overflow-x-auto max-h-80" id="${id}-response-body"></pre>
-                          </div>
+                  <div class="flex items-center justify-between mb-3">
+                    <h5 class="text-sm font-semibold text-swagger-text">Server response</h5>
+                    <div class="response-status-badge" id="${id}-status-code">-</div>
+                  </div>
 
-                          <!-- Response Headers -->
-                          <div>
-                            <span class="text-sm font-semibold text-swagger-text block mb-2">Response headers</span>
-                            <pre class="code-block rounded p-4 text-sm font-mono overflow-x-auto" id="${id}-response-headers"></pre>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <!-- Response Body -->
+                  <div class="response-section mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-swagger-text">Response body</span>
+                        <span class="text-xs text-swagger-text-secondary" id="${id}-body-size"></span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button onclick="copyResponseJson('${id}')" id="${id}-copy-btn" class="action-btn action-btn-outline">
+                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                          Copy
+                        </button>
+                        <button onclick="downloadResponse('${id}')" class="action-btn action-btn-outline">
+                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                    <pre class="response-code-block" id="${id}-response-body"></pre>
+                  </div>
+
+                  <!-- Response Headers -->
+                  <div class="response-section">
+                    <span class="text-sm font-medium text-swagger-text block mb-2">Response headers</span>
+                    <pre class="response-code-block" id="${id}-response-headers"></pre>
+                  </div>
                 </div>
               </div>
 
-              <!-- Responses Section -->
+              <!-- Responses Section (#17 - with Example/Schema tabs) -->
               <div class="border-t border-swagger-border pt-4">
-                <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center justify-between mb-3">
                   <h4 class="text-sm font-semibold text-swagger-text">Responses</h4>
                   <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-500">Response content type</span>
@@ -329,22 +1312,45 @@
                     </select>
                   </div>
                 </div>
-                <table class="w-full border-collapse text-sm">
-                  <thead>
-                    <tr class="border-b border-swagger-border">
-                      <th class="text-left py-2 w-20 text-swagger-text">Code</th>
-                      <th class="text-left py-2 text-swagger-text">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td class="py-3 align-top font-semibold">200</td>
-                      <td class="py-3">
-                        <div class="response-desc rounded">${summary || 'Successful response'}</div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+
+                <div class="border border-swagger-border rounded overflow-hidden">
+                  <div class="flex items-center gap-3 px-4 py-2 bg-gray-50 border-b border-swagger-border">
+                    <span class="text-sm font-semibold text-swagger-get">200</span>
+                    <span class="text-sm text-gray-600">${summary || 'Successful response'}</span>
+                  </div>
+
+                  <!-- Example/Schema Tabs -->
+                  <div class="flex border-b border-swagger-border">
+                    <button onclick="switchResponseTab('${id}', 'example')"
+                      class="px-4 py-2 text-sm border-b-2 border-swagger-execute text-swagger-execute font-semibold"
+                      data-endpoint="${id}" data-tab="example">
+                      Example Value
+                    </button>
+                    <button onclick="switchResponseTab('${id}', 'schema')"
+                      class="px-4 py-2 text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700"
+                      data-endpoint="${id}" data-tab="schema">
+                      Schema
+                    </button>
+                  </div>
+
+                  <!-- Example Tab Content -->
+                  <div id="${id}-example-tab" class="p-4">
+                    <pre class="code-block rounded p-3 text-xs font-mono overflow-x-auto">${
+                      details.responses?.['200']?.content?.['application/json']?.example
+                        ? JSON.stringify(details.responses['200'].content['application/json'].example, null, 2)
+                        : details.responses?.['200']?.content?.['application/json']?.schema?.example
+                          ? JSON.stringify(details.responses['200'].content['application/json'].schema.example, null, 2)
+                          : '{\n  // Response will be shown here\n}'
+                    }</pre>
+                  </div>
+
+                  <!-- Schema Tab Content -->
+                  <div id="${id}-schema-tab" class="p-4 hidden">
+                    <pre class="code-block rounded p-3 text-xs font-mono overflow-x-auto">${
+                      renderSchema(details.responses?.['200']?.content?.['application/json']?.schema)
+                    }</pre>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -371,43 +1377,58 @@
       return `
         <section class="mb-4 border border-swagger-border rounded bg-white" data-section="${sectionId}">
           <button onclick="toggleSection('${sectionId}')"
-            class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left">
+            id="${sectionId}-btn"
+            class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 rounded"
+            aria-expanded="false"
+            aria-controls="${sectionId}-content"
+            aria-label="Toggle ${tag} section">
             <div>
               <span class="text-lg font-bold text-swagger-text">${tag}</span>
               <span class="text-sm text-gray-500 ml-2">${desc}</span>
             </div>
-            <svg class="w-5 h-5 text-gray-400 transform transition-transform" id="${sectionId}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-gray-400 transform transition-transform" id="${sectionId}-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
           </button>
-          <div class="border-t border-swagger-border p-3 hidden" id="${sectionId}-content">
+          <div class="border-t border-swagger-border p-3 hidden" id="${sectionId}-content" role="region" aria-labelledby="${sectionId}-btn">
             ${endpoints.map((e, i) => buildEndpoint(e.path, e.method, e.details, `${tagIndex}-${i}`)).join('')}
           </div>
         </section>
       `;
     }
 
-    // Toggle section
+    // Toggle section (#27 - with aria-expanded)
     function toggleSection(id) {
       const content = document.getElementById(`${id}-content`);
       const chevron = document.getElementById(`${id}-chevron`);
+      const btn = document.getElementById(`${id}-btn`);
+      const isExpanding = content.classList.contains('hidden');
+
       content.classList.toggle('hidden');
       chevron.classList.toggle('rotate-90');
+
+      // Update aria-expanded for accessibility
+      if (btn) {
+        btn.setAttribute('aria-expanded', isExpanding ? 'true' : 'false');
+      }
     }
 
-    // Toggle endpoint
+    // Toggle endpoint (#27 - with aria-expanded)
     function toggleEndpoint(id) {
       const content = document.getElementById(`${id}-content`);
       const chevron = document.getElementById(`${id}-chevron`);
+      const btn = document.getElementById(`${id}-btn`);
 
       if (state.expandedEndpoints.has(id)) {
         content.classList.remove('open');
         chevron.classList.remove('rotate-180');
         state.expandedEndpoints.delete(id);
+        if (btn) btn.setAttribute('aria-expanded', 'false');
       } else {
         content.classList.add('open');
         chevron.classList.add('rotate-180');
         state.expandedEndpoints.add(id);
+        if (btn) btn.setAttribute('aria-expanded', 'true');
       }
     }
 
@@ -419,28 +1440,54 @@
       const paramInputs = paramsSection.querySelectorAll('.param-input');
       const paramDescs = paramsSection.querySelectorAll('.param-desc');
 
+      // Request body elements (may not exist for GET/DELETE)
+      const requestBodyInput = document.getElementById(`${id}-request-body`);
+      const requestBodyDesc = document.getElementById(`${id}-request-body-desc`);
+
       state.tryItOutMode[id] = !state.tryItOutMode[id];
 
       if (state.tryItOutMode[id]) {
         btn.textContent = 'Cancel';
-        btn.classList.add('border-swagger-delete', 'text-swagger-delete');
-        btn.classList.remove('border-swagger-border', 'text-swagger-text');
+        btn.classList.add('active');
         executeSection.classList.remove('hidden');
         paramInputs.forEach(el => el.classList.remove('hidden'));
         paramDescs.forEach(el => el.classList.add('hidden'));
+
+        // Show request body textarea if it exists
+        if (requestBodyInput) {
+          requestBodyInput.classList.remove('hidden');
+        }
+        if (requestBodyDesc) {
+          requestBodyDesc.classList.add('hidden');
+        }
       } else {
         btn.textContent = 'Try it out';
-        btn.classList.remove('border-swagger-delete', 'text-swagger-delete');
-        btn.classList.add('border-swagger-border', 'text-swagger-text');
+        btn.classList.remove('active');
         executeSection.classList.add('hidden');
         paramInputs.forEach(el => {
           el.classList.add('hidden');
           el.value = '';  // Reset input values
         });
         paramDescs.forEach(el => el.classList.remove('hidden'));
+
+        // Hide request body textarea and reset if it exists
+        if (requestBodyInput) {
+          requestBodyInput.classList.add('hidden');
+          requestBodyInput.value = '';
+        }
+        if (requestBodyDesc) {
+          requestBodyDesc.classList.remove('hidden');
+        }
+
         // Hide response display and clear state
         document.getElementById(`${id}-response-display`).classList.add('hidden');
         delete state.responses[id];
+
+        // Reset custom headers
+        const headersContainer = document.getElementById(`${id}-headers-container`);
+        if (headersContainer) {
+          headersContainer.innerHTML = '<div class="text-xs text-gray-500">No custom headers added</div>';
+        }
       }
     }
 
@@ -472,6 +1519,11 @@
         }
       });
 
+      // Add API key as query param if configured (#4)
+      if (authState.apiKey && authState.apiKeyIn === 'query') {
+        queryParams.push(`api_key=${encodeURIComponent(authState.apiKey)}`);
+      }
+
       if (queryParams.length > 0) {
         url += (url.includes('?') ? '&' : '?') + queryParams.join('&');
       }
@@ -479,22 +1531,75 @@
       const fullUrl = baseUrl + url;
       const headers = { 'Accept': 'application/json' };
 
-      // Show response section
+      // Apply authentication (#4)
+      if (authState.bearerToken) {
+        headers['Authorization'] = `Bearer ${authState.bearerToken}`;
+      }
+      if (authState.apiKey && authState.apiKeyIn === 'header') {
+        headers['X-API-Key'] = authState.apiKey;
+      }
+
+      // Collect custom headers (#5)
+      const headersContainer = document.getElementById(`${id}-headers-container`);
+      if (headersContainer) {
+        const headerRows = headersContainer.querySelectorAll('.header-input-row');
+        headerRows.forEach(row => {
+          const nameInput = row.querySelector('.header-name');
+          const valueInput = row.querySelector('.header-value');
+          if (nameInput && valueInput) {
+            const headerName = nameInput.value.trim();
+            const headerValue = valueInput.value.trim();
+            if (headerName) {
+              headers[headerName] = headerValue;
+            }
+          }
+        });
+      }
+
+      // Get request body if present (#3)
+      let requestBody = null;
+      const requestBodyInput = document.getElementById(`${id}-request-body`);
+      if (requestBodyInput && requestBodyInput.value.trim()) {
+        requestBody = requestBodyInput.value.trim();
+        headers['Content-Type'] = 'application/json';
+      }
+
+      // Show response section with animation
       const responseDisplay = document.getElementById(`${id}-response-display`);
       responseDisplay.classList.remove('hidden');
+      responseDisplay.classList.remove('response-animate');
+      responseDisplay.style.opacity = '0';
+      // Trigger reflow to restart animation
+      void responseDisplay.offsetWidth;
+      responseDisplay.classList.add('response-animate');
+      responseDisplay.style.opacity = '';
 
-      // Update curl
-      document.getElementById(`${id}-curl`).textContent = generateCurl(method, fullUrl, headers);
+      // Update curl (include body if present)
+      document.getElementById(`${id}-curl`).textContent = generateCurl(method, fullUrl, headers, requestBody);
       document.getElementById(`${id}-request-url`).textContent = fullUrl;
 
-      // Loading state
-      document.getElementById(`${id}-status-code`).textContent = '...';
-      document.getElementById(`${id}-response-body`).innerHTML = 'Loading...';
+      // Loading state with spinner (#6)
+      const spinnerSvg = `<svg class="w-4 h-4 animate-spin inline mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
+      document.getElementById(`${id}-status-code`).innerHTML = `${spinnerSvg}<span>Loading...</span>`;
+      document.getElementById(`${id}-response-body`).innerHTML = `<div class="flex items-center gap-2 text-gray-400">${spinnerSvg}Waiting for response...</div>`;
       document.getElementById(`${id}-response-headers`).textContent = '';
 
+      // Start timing (#19)
+      const startTime = performance.now();
+
       try {
-        const options = { method: method.toUpperCase(), headers };
+        const options = {
+          method: method.toUpperCase(),
+          headers
+        };
+
+        // Add body for POST/PUT/PATCH requests (#3)
+        if (requestBody && ['post', 'put', 'patch'].includes(method.toLowerCase())) {
+          options.body = requestBody;
+        }
+
         const response = await fetch(fullUrl, options);
+        const duration = Math.round(performance.now() - startTime);
 
         // Collect headers
         const responseHeaders = [];
@@ -502,20 +1607,51 @@
           responseHeaders.push(`${key}: ${value}`);
         });
 
-        // Status
-        document.getElementById(`${id}-status-code`).textContent = response.status;
+        // Status with timing (#19)
+        const statusBadge = document.getElementById(`${id}-status-code`);
+        const isSuccess = response.status >= 200 && response.status < 300;
+        statusBadge.innerHTML = `<span>${response.status}</span><span style="opacity: 0.7;">·</span><span style="font-weight: 400;">${duration}ms</span>`;
+        statusBadge.style.background = isSuccess
+          ? 'linear-gradient(135deg, rgba(73, 204, 144, 0.15), rgba(73, 204, 144, 0.08))'
+          : 'linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.08))';
+        statusBadge.style.borderColor = isSuccess ? 'rgba(73, 204, 144, 0.3)' : 'rgba(249, 115, 22, 0.3)';
+        statusBadge.style.color = isSuccess ? '#49cc90' : '#f97316';
 
         // Body
         const contentType = response.headers.get('content-type') || '';
         let bodyText;
         let bodyJson;
+        let isBinary = false;
 
         if (contentType.includes('application/json')) {
           bodyJson = await response.json();
           bodyText = formatJson(bodyJson);
-        } else if (contentType.includes('image/')) {
-          bodyText = `[Binary image data - ${contentType}]`;
-          bodyJson = { type: contentType, size: 'binary' };
+        } else if (isBinaryContentType(contentType)) {
+          // Binary handling (#1, #11)
+          const blob = await response.blob();
+          isBinary = true;
+          bodyJson = { type: contentType, size: blob.size, dataUrl: URL.createObjectURL(blob) };
+
+          // Display actual images (#2, #15)
+          if (contentType.includes('image/')) {
+            const sizeStr = blob.size > 1024 * 1024
+              ? `${(blob.size / 1024 / 1024).toFixed(2)} MB`
+              : `${(blob.size / 1024).toFixed(2)} KB`;
+
+            bodyText = `<div class="bg-gray-100 p-4 rounded">
+              <div class="mb-4 flex items-center justify-center max-h-96">
+                <img id="${id}-image-preview" src="${bodyJson.dataUrl}" alt="Response image"
+                  class="max-w-full max-h-full object-contain" onload="updateImageMetadata('${id}')" />
+              </div>
+              <div class="text-xs text-gray-500 space-y-1">
+                <div>Size: ${sizeStr}</div>
+                <div>Type: ${contentType}</div>
+                <div id="${id}-image-dims" class="hidden">Dimensions: <span id="${id}-image-dims-text"></span></div>
+              </div>
+            </div>`;
+          } else {
+            bodyText = `[Binary data - ${contentType}, ${(blob.size / 1024).toFixed(2)} KB]`;
+          }
         } else {
           bodyText = await response.text();
           bodyJson = { text: bodyText };
@@ -524,12 +1660,52 @@
         document.getElementById(`${id}-response-body`).innerHTML = bodyText;
         document.getElementById(`${id}-response-headers`).textContent = responseHeaders.join('\n');
 
-        // Store for download
-        state.responses[id] = { body: bodyJson, headers: responseHeaders };
+        // Display body size (#14)
+        if (bodyJson.size) {
+          const sizeStr = bodyJson.size > 1024 * 1024
+            ? `${(bodyJson.size / 1024 / 1024).toFixed(2)} MB`
+            : `${(bodyJson.size / 1024).toFixed(2)} KB`;
+          document.getElementById(`${id}-body-size`).textContent = `(${sizeStr})`;
+        }
+
+        // Store for download (#13)
+        state.responses[id] = {
+          body: bodyJson,
+          headers: responseHeaders,
+          isBinary: isBinary,
+          contentType: contentType
+        };
+
+        // Success toast (#9)
+        showToast(`Request successful - ${response.status}`, 'success');
 
       } catch (error) {
-        document.getElementById(`${id}-status-code`).textContent = 'Error';
-        document.getElementById(`${id}-response-body`).textContent = error.message;
+        // Comprehensive error handling (#7)
+        const duration = Math.round(performance.now() - startTime);
+        let errorType = 'Request Failed';
+        let errorDetail = error.message;
+
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          errorType = 'Network Error';
+          errorDetail = 'Unable to connect. Check your internet connection or CORS settings.';
+        } else if (error.name === 'AbortError') {
+          errorType = 'Request Timeout';
+          errorDetail = 'The request took too long. Try again.';
+        }
+
+        const errorBadge = document.getElementById(`${id}-status-code`);
+        errorBadge.innerHTML = `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg><span>${errorType}</span>`;
+        errorBadge.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.08))';
+        errorBadge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        errorBadge.style.color = '#ef4444';
+
+        document.getElementById(`${id}-response-body`).innerHTML = `<div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+          <p class="text-red-700 font-semibold text-sm">${errorType}</p>
+          <p class="text-red-600 text-sm mt-1">${errorDetail}</p>
+          <p class="text-red-400 text-xs mt-2">Time: ${duration}ms</p>
+        </div>`;
+
+        showToast(errorType, 'error');
       }
     }
 
@@ -553,25 +1729,27 @@
           }
         }
 
-        // Render
+        // Render - optimized with array join instead of innerHTML += (#21)
         const container = document.getElementById('api-sections');
-        container.innerHTML = '';
-
+        const sectionsHtml = [];
         const renderedTags = new Set();
         let tagIndex = 0;
 
         tagOrder.forEach(tag => {
           if (grouped[tag]) {
-            container.innerHTML += buildSection(tag, grouped[tag], tagIndex++);
+            sectionsHtml.push(buildSection(tag, grouped[tag], tagIndex++));
             renderedTags.add(tag);
           }
         });
 
         Object.keys(grouped).forEach(tag => {
           if (!renderedTags.has(tag)) {
-            container.innerHTML += buildSection(tag, grouped[tag], tagIndex++);
+            sectionsHtml.push(buildSection(tag, grouped[tag], tagIndex++));
           }
         });
+
+        // Single DOM update
+        container.innerHTML = sectionsHtml.join('');
 
         // Expand first section
         if (tagIndex > 0) toggleSection('section-0');

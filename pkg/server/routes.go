@@ -67,7 +67,8 @@ func apiRequestCount(srv *Server) func(types.Response, url.Values) ([]byte, stri
 	}
 }
 
-func apiSearchJA3(srv *Server) func(types.Response, url.Values) ([]byte, string) {
+// apiSearchHandler creates a search endpoint handler with common validation logic
+func apiSearchHandler(srv *Server, searchFn func(string, *Server) interface{}) func(types.Response, url.Values) ([]byte, string) {
 	return func(_ types.Response, u url.Values) ([]byte, string) {
 		if !srv.IsConnectedToDB() {
 			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
@@ -76,55 +77,26 @@ func apiSearchJA3(srv *Server) func(types.Response, url.Values) ([]byte, string)
 		if by == "" {
 			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
 		}
-		res := GetByJa3(by, srv)
+		res := searchFn(by, srv)
 		j, _ := json.MarshalIndent(res, "", "\t")
 		return j, "application/json"
 	}
+}
+
+func apiSearchJA3(srv *Server) func(types.Response, url.Values) ([]byte, string) {
+	return apiSearchHandler(srv, func(by string, s *Server) interface{} { return GetByJa3(by, s) })
 }
 
 func apiSearchH2(srv *Server) func(types.Response, url.Values) ([]byte, string) {
-	return func(_ types.Response, u url.Values) ([]byte, string) {
-		if !srv.IsConnectedToDB() {
-			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
-		}
-		by := utils.GetParam("by", u)
-		if by == "" {
-			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
-		}
-		res := GetByH2(by, srv)
-		j, _ := json.MarshalIndent(res, "", "\t")
-		return j, "application/json"
-	}
+	return apiSearchHandler(srv, func(by string, s *Server) interface{} { return GetByH2(by, s) })
 }
 
 func apiSearchPeetPrint(srv *Server) func(types.Response, url.Values) ([]byte, string) {
-	return func(_ types.Response, u url.Values) ([]byte, string) {
-		if !srv.IsConnectedToDB() {
-			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
-		}
-		by := utils.GetParam("by", u)
-		if by == "" {
-			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
-		}
-		res := GetByPeetPrint(by, srv)
-		j, _ := json.MarshalIndent(res, "", "\t")
-		return j, "application/json"
-	}
+	return apiSearchHandler(srv, func(by string, s *Server) interface{} { return GetByPeetPrint(by, s) })
 }
 
 func apiSearchUserAgent(srv *Server) func(types.Response, url.Values) ([]byte, string) {
-	return func(_ types.Response, u url.Values) ([]byte, string) {
-		if !srv.IsConnectedToDB() {
-			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
-		}
-		by := utils.GetParam("by", u)
-		if by == "" {
-			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
-		}
-		res := GetByUserAgent(by, srv)
-		j, _ := json.MarshalIndent(res, "", "\t")
-		return j, "application/json"
-	}
+	return apiSearchHandler(srv, func(by string, s *Server) interface{} { return GetByUserAgent(by, s) })
 }
 
 func index(r types.Response, v url.Values) ([]byte, string) {
@@ -134,33 +106,11 @@ func index(r types.Response, v url.Values) ([]byte, string) {
 }
 
 func apiSearchJA4(srv *Server) func(types.Response, url.Values) ([]byte, string) {
-	return func(_ types.Response, u url.Values) ([]byte, string) {
-		if !srv.IsConnectedToDB() {
-			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
-		}
-		by := utils.GetParam("by", u)
-		if by == "" {
-			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
-		}
-		res := GetByJA4(by, srv)
-		j, _ := json.MarshalIndent(res, "", "\t")
-		return j, "application/json"
-	}
+	return apiSearchHandler(srv, func(by string, s *Server) interface{} { return GetByJA4(by, s) })
 }
 
 func apiSearchJA4H(srv *Server) func(types.Response, url.Values) ([]byte, string) {
-	return func(_ types.Response, u url.Values) ([]byte, string) {
-		if !srv.IsConnectedToDB() {
-			return []byte("{\"error\": \"Not connected to database.\"}"), "application/json"
-		}
-		by := utils.GetParam("by", u)
-		if by == "" {
-			return []byte("{\"error\": \"No 'by' param present\"}"), "application/json"
-		}
-		res := GetByJA4H(by, srv)
-		j, _ := json.MarshalIndent(res, "", "\t")
-		return j, "application/json"
-	}
+	return apiSearchHandler(srv, func(by string, s *Server) interface{} { return GetByJA4H(by, s) })
 }
 
 func getAllPaths(srv *Server) map[string]func(types.Response, url.Values) ([]byte, string) {

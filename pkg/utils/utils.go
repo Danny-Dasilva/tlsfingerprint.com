@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -80,7 +79,7 @@ func GetMD5Hash(text string) string {
 }
 
 func ReadFile(filename string) ([]byte, error) {
-	body, err := ioutil.ReadFile(filename)
+	body, err := os.ReadFile(filename)
 	if err != nil {
 		log.Printf("unable to read file: %v\n", err)
 		return nil, err
@@ -89,18 +88,7 @@ func ReadFile(filename string) ([]byte, error) {
 }
 
 func WriteToFile(filename string, data []byte) error {
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write(data)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return os.WriteFile(filename, data, 0644)
 }
 
 func GetAdmin() (string, bool) {

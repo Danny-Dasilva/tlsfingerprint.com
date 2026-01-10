@@ -24,6 +24,20 @@ import (
 
 const HTTP2_PREAMBLE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
 
+// extractStatusCode extracts HTTP status code from /status/{code} paths
+func extractStatusCode(path string) int {
+	if !strings.HasPrefix(path, "/status/") {
+		return 200
+	}
+	parts := strings.Split(path, "/")
+	if len(parts) >= 3 {
+		if code, err := strconv.Atoi(parts[2]); err == nil && code >= 100 && code < 600 {
+			return code
+		}
+	}
+	return 200
+}
+
 func parseHTTP1(request []byte) types.Response {
 	// Split the request into lines
 	lines := strings.Split(string(request), "\r\n")
@@ -253,17 +267,7 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 		}
 	}
 
-	// Extract status code from /status/{code} path
-	statusCode := 200
-	if strings.HasPrefix(resp.Path, "/status/") {
-		parts := strings.Split(resp.Path, "/")
-		if len(parts) >= 3 {
-			if code, err := strconv.Atoi(parts[2]); err == nil && code >= 100 && code < 600 {
-				statusCode = code
-			}
-		}
-	}
-
+	statusCode := extractStatusCode(resp.Path)
 	res1 := fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, http.StatusText(statusCode))
 	res1 += "Content-Length: " + fmt.Sprintf("%v\r\n", len(res))
 	res1 += "Content-Type: " + ctype + "; charset=utf-8\r\n"
@@ -436,16 +440,7 @@ frameLoop:
 		isAdmin = true
 	}
 
-	// Extract status code from /status/{code} path
-	statusCode := 200
-	if strings.HasPrefix(path, "/status/") {
-		parts := strings.Split(path, "/")
-		if len(parts) >= 3 {
-			if code, err := strconv.Atoi(parts[2]); err == nil && code >= 100 && code < 600 {
-				statusCode = code
-			}
-		}
-	}
+	statusCode := extractStatusCode(path)
 
 	// Prepare HEADERS
 	hbuf := bytes.NewBuffer([]byte{})

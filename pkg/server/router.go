@@ -18,7 +18,7 @@ func Log(msg string) {
 }
 
 func cleanIP(ip string) string {
-	return strings.Replace(strings.Replace(ip, "]", "", -1), "[", "", -1)
+	return strings.Trim(ip, "[]")
 }
 
 // Router returns bytes and content type that should be sent to the client

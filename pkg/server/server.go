@@ -76,26 +76,19 @@ func (s *Server) GetAdmin() (string, bool) {
 
 // GetUserAgent extracts the user agent from a response
 func GetUserAgent(res types.Response) string {
-	var headers []string
-	var ua string
-
 	if res.HTTPVersion == "h2" {
 		return res.UserAgent
-	} else {
-		if res.Http1 == nil {
-			return ""
-		}
-		headers = res.Http1.Headers
+	}
+	if res.Http1 == nil {
+		return ""
 	}
 
-	for _, header := range headers {
-		lower := strings.ToLower(header)
-		if strings.HasPrefix(lower, "user-agent: ") {
-			ua = strings.Split(header, ": ")[1]
+	for _, header := range res.Http1.Headers {
+		if strings.HasPrefix(strings.ToLower(header), "user-agent: ") {
+			return strings.Split(header, ": ")[1]
 		}
 	}
-
-	return ua
+	return ""
 }
 
 // SetLocal sets the local development flag
