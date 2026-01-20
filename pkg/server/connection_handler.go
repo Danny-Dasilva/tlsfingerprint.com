@@ -362,8 +362,14 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 
 // https://stackoverflow.com/questions/52002623/golang-tcp-server-how-to-write-http2-data
 func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) {
+	// Track request timing
+	startTime := time.Now()
+	requestID := generateRequestID()
+
 	// make a new framer to encode/decode frames
 	fr := http2.NewFramer(conn, conn)
+	c := make(chan types.ParsedFrame)
+	var frames []types.ParsedFrame
 
 	// Same settings that google uses
 	err := fr.WriteSettings(
@@ -382,37 +388,6 @@ func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) 
 		return
 	}
 
-	// Connection-level idle timeout - close connection after 30s of inactivity
-	idleTimeout := 30 * time.Second
-	conn.SetDeadline(time.Now().Add(idleTimeout))
-
-	// Handle multiple requests on this connection (HTTP/2 multiplexing)
-	for {
-		// Reset deadline on each request
-		conn.SetDeadline(time.Now().Add(idleTimeout))
-
-		// Process a single HTTP/2 request
-		shouldClose := srv.handleHTTP2Request(fr, conn, tlsFingerprint)
-		if shouldClose {
-			break
-		}
-	}
-
-	// Send GOAWAY only when closing the connection
-	fr.WriteGoAway(0, http2.ErrCodeNo, []byte{})
-	time.Sleep(time.Millisecond * 100)
-	conn.Close()
-}
-
-// handleHTTP2Request processes a single HTTP/2 request and returns true if connection should close
-func (srv *Server) handleHTTP2Request(fr *http2.Framer, conn net.Conn, tlsFingerprint *types.TLSDetails) bool {
-	// Track request timing
-	startTime := time.Now()
-	requestID := generateRequestID()
-
-	c := make(chan types.ParsedFrame)
-	var frames []types.ParsedFrame
-
 	var frame types.ParsedFrame
 	var headerFrame types.ParsedFrame
 	var isAdmin bool
@@ -430,10 +405,14 @@ frameLoop:
 		case frame = <-c:
 			if frame.Type == "ERROR_CLOSE" {
 				bodyTimeout.Stop()
-				return true // Signal to close connection
+				err = conn.Close()
+				if err != nil {
+					log.Println("Cant close connection", err)
+				}
+				return
 			} else if frame.Type == "ERROR" {
 				bodyTimeout.Stop()
-				return true // Signal to close connection
+				return
 			}
 			// log.Println(frame)
 			frames = append(frames, frame)
@@ -588,10 +567,10 @@ frameLoop:
 	}
 
 	// Write HEADERS frame
-	err := fr.WriteHeaders(http2.HeadersFrameParam{StreamID: headerFrame.Stream, BlockFragment: hbuf.Bytes(), EndHeaders: true})
+	err = fr.WriteHeaders(http2.HeadersFrameParam{StreamID: headerFrame.Stream, BlockFragment: hbuf.Bytes(), EndHeaders: true})
 	if err != nil {
 		log.Println("could not write headers: ", err)
-		return true // Connection error, close it
+		return
 	}
 
 	chunks := utils.SplitBytesIntoChunks(res, 1024)
@@ -599,9 +578,10 @@ frameLoop:
 		fr.WriteData(headerFrame.Stream, false, c)
 	}
 	fr.WriteData(headerFrame.Stream, true, []byte{})
+	fr.WriteGoAway(headerFrame.Stream, http2.ErrCodeNo, []byte{})
 
-	// Don't send GOAWAY or close connection - allow more requests on this connection
-	return false // Continue handling requests
+	time.Sleep(time.Millisecond * 500)
+	conn.Close()
 }
 
 // HandleHTTP3 handles HTTP/3 requests and returns a simple "Hello, World!" response
