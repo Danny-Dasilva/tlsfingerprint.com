@@ -10,9 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <!-- Highlight.js for syntax highlighting (#20) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-dark.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/core.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/languages/json.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -906,6 +909,205 @@
       return cmd;
     }
 
+    // Generate Go CycleTLS example
+    function generateGo(method, url, headers = {}, body = null) {
+      let code = `package main
+
+import (
+    cycletls "github.com/Danny-Dasilva/CycleTLS/cycletls"
+    "log"
+)
+
+func main() {
+    client := cycletls.Init()
+    defer client.Close()
+
+    response, err := client.Do("${url}", cycletls.Options{`;
+
+      if (body) {
+        code += `
+        Body: \`${body}\`,`;
+      }
+
+      const headerEntries = Object.entries(headers);
+      if (headerEntries.length > 0) {
+        code += `
+        Headers: map[string]string{`;
+        headerEntries.forEach(([key, val]) => {
+          code += `
+            "${key}": "${val}",`;
+        });
+        code += `
+        },`;
+      }
+
+      code += `
+    }, "${method.toUpperCase()}")
+
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Println(response.Body)
+}`;
+      return code;
+    }
+
+    // Generate TypeScript CycleTLS example
+    function generateTypeScript(method, url, headers = {}, body = null) {
+      let code = `import initCycleTLS from 'cycletls';
+
+(async () => {
+  const cycleTLS = await initCycleTLS();
+
+  try {
+    const response = await cycleTLS("${url}", {`;
+
+      if (body) {
+        code += `
+      body: \`${body}\`,`;
+      }
+
+      const headerEntries = Object.entries(headers);
+      if (headerEntries.length > 0) {
+        code += `
+      headers: {`;
+        headerEntries.forEach(([key, val]) => {
+          code += `
+        "${key}": "${val}",`;
+        });
+        code += `
+      },`;
+      }
+
+      code += `
+    }, "${method.toUpperCase()}");
+
+    console.log(response.body);
+  } finally {
+    cycleTLS.exit();
+  }
+})();`;
+      return code;
+    }
+
+    // Generate Python CycleTLS example
+    function generatePython(method, url, headers = {}, body = null) {
+      const methodLower = method.toLowerCase();
+      let code = `import cycletls
+
+client = cycletls.CycleTLS()
+
+try:
+    response = client.${methodLower}(
+        "${url}"`;
+
+      const headerEntries = Object.entries(headers);
+      if (headerEntries.length > 0) {
+        code += `,
+        headers={`;
+        headerEntries.forEach(([key, val]) => {
+          code += `
+            "${key}": "${val}",`;
+        });
+        code += `
+        }`;
+      }
+
+      if (body) {
+        code += `,
+        data='${body}'`;
+      }
+
+      code += `
+    )
+
+    print(f"Status: {response.status}")
+    print(response.text)
+finally:
+    client.close()`;
+      return code;
+    }
+
+    // Switch between code example languages
+    function switchCodeTab(id, lang) {
+      // Update tab styling
+      document.querySelectorAll(`[data-endpoint="${id}"].code-tab`).forEach(tab => {
+        if (tab.dataset.lang === lang) {
+          tab.classList.add('border-swagger-execute', 'text-swagger-execute');
+          tab.classList.remove('border-transparent');
+          tab.style.color = '';
+        } else {
+          tab.classList.remove('border-swagger-execute', 'text-swagger-execute');
+          tab.classList.add('border-transparent');
+          tab.style.color = 'var(--color-text-secondary)';
+        }
+      });
+
+      // Get current request details from state
+      const data = state.codeExamples?.[id];
+      if (!data) return;
+
+      const { method, url, headers, body } = data;
+      let code, language;
+
+      switch (lang) {
+        case 'curl':
+          code = generateCurl(method, url, headers, body);
+          language = 'bash';
+          break;
+        case 'go':
+          code = generateGo(method, url, headers, body);
+          language = 'go';
+          break;
+        case 'typescript':
+          code = generateTypeScript(method, url, headers, body);
+          language = 'typescript';
+          break;
+        case 'python':
+          code = generatePython(method, url, headers, body);
+          language = 'python';
+          break;
+      }
+
+      // Apply syntax highlighting
+      const codeEl = document.getElementById(`${id}-code-example`);
+      if (codeEl && code) {
+        const highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
+        codeEl.innerHTML = highlighted;
+      }
+
+      // Store current language for copy function
+      state.currentLang = state.currentLang || {};
+      state.currentLang[id] = lang;
+    }
+
+    // Copy current code example
+    function copyCodeExample(id) {
+      const data = state.codeExamples?.[id];
+      if (!data) return;
+
+      const { method, url, headers, body } = data;
+      const lang = state.currentLang?.[id] || 'curl';
+      let code;
+
+      switch (lang) {
+        case 'curl':
+          code = generateCurl(method, url, headers, body);
+          break;
+        case 'go':
+          code = generateGo(method, url, headers, body);
+          break;
+        case 'typescript':
+          code = generateTypeScript(method, url, headers, body);
+          break;
+        case 'python':
+          code = generatePython(method, url, headers, body);
+          break;
+      }
+
+      copyToClipboard(code);
+    }
+
     // Download response (#12-14)
     function downloadResponse(id) {
       const data = state.responses[id];
@@ -1248,15 +1450,49 @@
 
               <!-- Response Display (hidden initially) -->
               <div class="hidden" id="${id}-response-display" style="opacity: 0;">
-                <!-- Curl (#10 copy button) -->
+                <!-- Code Examples with Tabs -->
                 <div class="mb-4">
                   <div class="flex items-center justify-between mb-2">
-                    <h5 class="text-sm font-semibold text-swagger-text">Curl</h5>
-                    <button onclick="copyToClipboard(document.getElementById('${id}-curl').textContent)" class="px-3 py-1 text-xs border border-swagger-border rounded hover:bg-gray-50">
-                      Copy
+                    <h5 class="text-sm font-semibold" style="color: var(--color-text)">Code Examples</h5>
+                  </div>
+
+                  <!-- Language Tabs -->
+                  <div class="flex border-b" style="border-color: var(--color-border)">
+                    <button onclick="switchCodeTab('${id}', 'curl')"
+                      class="code-tab px-4 py-2 text-sm font-medium border-b-2 border-swagger-execute text-swagger-execute"
+                      data-endpoint="${id}" data-lang="curl">
+                      curl
+                    </button>
+                    <button onclick="switchCodeTab('${id}', 'go')"
+                      class="code-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent"
+                      style="color: var(--color-text-secondary)"
+                      data-endpoint="${id}" data-lang="go">
+                      Go
+                    </button>
+                    <button onclick="switchCodeTab('${id}', 'typescript')"
+                      class="code-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent"
+                      style="color: var(--color-text-secondary)"
+                      data-endpoint="${id}" data-lang="typescript">
+                      TypeScript
+                    </button>
+                    <button onclick="switchCodeTab('${id}', 'python')"
+                      class="code-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent"
+                      style="color: var(--color-text-secondary)"
+                      data-endpoint="${id}" data-lang="python">
+                      Python
                     </button>
                   </div>
-                  <pre class="code-block rounded p-4 text-sm font-mono overflow-x-auto whitespace-pre-wrap" id="${id}-curl"></pre>
+
+                  <!-- Code Content -->
+                  <div class="relative">
+                    <button onclick="copyCodeExample('${id}')"
+                      class="absolute top-2 right-2 px-3 py-1 text-xs border rounded hover:bg-gray-700 z-10"
+                      style="border-color: var(--color-border); color: var(--color-text-secondary)">
+                      Copy
+                    </button>
+                    <pre class="code-block rounded-b p-4 text-sm font-mono overflow-x-auto whitespace-pre-wrap"
+                      id="${id}-code-example"></pre>
+                  </div>
                 </div>
 
                 <!-- Request URL -->
@@ -1482,6 +1718,8 @@
         // Hide response display and clear state
         document.getElementById(`${id}-response-display`).classList.add('hidden');
         delete state.responses[id];
+        delete state.codeExamples?.[id];
+        delete state.currentLang?.[id];
 
         // Reset custom headers
         const headersContainer = document.getElementById(`${id}-headers-container`);
@@ -1495,6 +1733,8 @@
     function clearResponse(id) {
       document.getElementById(`${id}-response-display`).classList.add('hidden');
       delete state.responses[id];
+      delete state.codeExamples?.[id];
+      delete state.currentLang?.[id];
     }
 
     // Execute request
@@ -1574,8 +1814,12 @@
       responseDisplay.classList.add('response-animate');
       responseDisplay.style.opacity = '';
 
-      // Update curl (include body if present)
-      document.getElementById(`${id}-curl`).textContent = generateCurl(method, fullUrl, headers, requestBody);
+      // Store data for code example generation
+      state.codeExamples = state.codeExamples || {};
+      state.codeExamples[id] = { method, url: fullUrl, headers, body: requestBody };
+
+      // Update code examples (default to curl)
+      switchCodeTab(id, 'curl');
       document.getElementById(`${id}-request-url`).textContent = fullUrl;
 
       // Loading state with spinner (#6)

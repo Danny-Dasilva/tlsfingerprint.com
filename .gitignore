@@ -13,3 +13,5 @@ adminKey
 crashes.txt
 cmd/cmd
 tmp
+.claude/
+thoughts/
