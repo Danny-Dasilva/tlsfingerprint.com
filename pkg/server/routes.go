@@ -58,6 +58,30 @@ func apiRaw(res types.Response, _ url.Values) ([]byte, string) {
 	return []byte(fmt.Sprintf(`{"raw": "%s", "raw_b64": "%s"}`, res.TLS.RawBytes, res.TLS.RawB64)), "application/json"
 }
 
+// apiSNI extracts and returns the Server Name Indication (SNI) from TLS handshake
+// This allows clients to verify their SNI override is working correctly
+func apiSNI(res types.Response, _ url.Values) ([]byte, string) {
+	sni := ""
+	if res.TLS != nil {
+		// Extract SNI from extensions array
+		for _, ext := range res.TLS.Extensions {
+			if m, ok := ext.(map[string]interface{}); ok {
+				if serverName, ok := m["server_name"].(string); ok && serverName != "" {
+					sni = serverName
+					break
+				}
+			}
+		}
+	}
+	response := map[string]interface{}{
+		"sni":         sni,
+		"ip":          res.IP,
+		"http_version": res.HTTPVersion,
+	}
+	j, _ := json.Marshal(response)
+	return j, "application/json"
+}
+
 func apiRequestCount(srv *Server) func(types.Response, url.Values) ([]byte, string) {
 	return func(_ types.Response, _ url.Values) ([]byte, string) {
 		if !srv.IsConnectedToDB() {
@@ -124,6 +148,7 @@ func getAllPaths(srv *Server) map[string]func(types.Response, url.Values) ([]byt
 		"/api/tls":              apiTLS,
 		"/api/clean":            apiClean,
 		"/api/raw":              apiRaw,
+		"/api/sni":              apiSNI,
 		"/api/request-count":    apiRequestCount(srv),
 		"/api/search-ja3":       apiSearchJA3(srv),
 		"/api/search-ja4":       apiSearchJA4(srv),

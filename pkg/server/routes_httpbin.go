@@ -17,6 +17,20 @@ import (
 )
 
 // =============================================================================
+// RouteResponse - Extended response type for special handling
+// =============================================================================
+
+// RouteResponse encapsulates response data with optional metadata for redirects,
+// cookies, and custom status codes
+type RouteResponse struct {
+	Body        []byte
+	ContentType string
+	StatusCode  int               // 0 means use default (200 or extracted from path)
+	Headers     map[string]string // Additional headers (e.g., Set-Cookie, Location)
+	IsRedirect  bool              // True if this is a redirect response
+}
+
+// =============================================================================
 // Helper Functions
 // =============================================================================
 
@@ -331,19 +345,30 @@ func httpbinCookies(res types.Response, params url.Values) ([]byte, string) {
 }
 
 // httpbinCookiesSet handles GET /cookies/set - sets cookies via query params
-// Note: This needs special handling in connection_handler to set Set-Cookie headers
+// Returns Set-Cookie headers for each query parameter
 func httpbinCookiesSet(res types.Response, params url.Values) ([]byte, string) {
 	response := buildTLSFields(res)
 
-	// Return what cookies would be set
+	// Build cookies and Set-Cookie header list
 	cookies := make(map[string]string)
+	var setCookies []string
 	for k, v := range params {
 		if len(v) > 0 {
 			cookies[k] = v[0]
+			setCookies = append(setCookies, k+"="+v[0]+"; Path=/")
 		}
 	}
 
 	response["cookies"] = cookies
+
+	// Return special content-type that signals Set-Cookie headers
+	// Format: "set-cookies:COOKIE1|COOKIE2|...:application/json"
+	// The body follows normal JSON format
+	if len(setCookies) > 0 {
+		cookieList := strings.Join(setCookies, "|")
+		return toJSON(response), "set-cookies:" + cookieList + ":application/json"
+	}
+
 	return toJSON(response), "application/json"
 }
 
@@ -442,9 +467,19 @@ func httpbinImageWebP(res types.Response, params url.Values) ([]byte, string) {
 	return webpImage, "image/webp"
 }
 
-// httpbinBytes handles GET /bytes/{n} - returns n random bytes
+// httpbinBytes handles /bytes/{n}
+// GET: returns n random bytes
+// POST/PUT: echoes back the request body (for binary data testing)
 func httpbinBytes(res types.Response, params url.Values) ([]byte, string) {
-	// Extract n from path: /bytes/100
+	// For POST/PUT requests, echo back the body for binary testing
+	if res.Method == "POST" || res.Method == "PUT" {
+		body := extractBody(res)
+		if len(body) > 0 {
+			return body, "application/octet-stream"
+		}
+	}
+
+	// GET behavior: Extract n from path: /bytes/100
 	path := res.Path
 	parts := strings.Split(path, "/")
 	n := 100 // default
@@ -482,8 +517,8 @@ func httpbinBase64(res types.Response, params url.Values) ([]byte, string) {
 // Redirect Endpoints: /redirect/{n}, /redirect-to, /status/{code}
 // =============================================================================
 
-// httpbinRedirect handles GET /redirect/{n} - returns redirect info
-// Note: Actual redirect behavior needs connection_handler modification
+// httpbinRedirect handles GET /redirect/{n} - returns 302 redirect
+// Redirects to /redirect/{n-1} until n=1, then redirects to /get
 func httpbinRedirect(res types.Response, params url.Values) ([]byte, string) {
 	// Extract n from path
 	path := res.Path
@@ -495,23 +530,35 @@ func httpbinRedirect(res types.Response, params url.Values) ([]byte, string) {
 		}
 	}
 
-	response := buildTLSFields(res)
-	response["redirect_count"] = n
+	var location string
 	if n > 1 {
-		response["location"] = "/redirect/" + strconv.Itoa(n-1)
+		location = "/redirect/" + strconv.Itoa(n-1)
 	} else {
-		response["location"] = "/get"
+		location = "/get"
 	}
 
-	return toJSON(response), "application/json"
+	// Return special content-type that signals redirect to connection_handler
+	// Format: "redirect:STATUS_CODE:LOCATION"
+	return []byte{}, "redirect:302:" + location
 }
 
 // httpbinRedirectTo handles /redirect-to?url=...
+// Returns 302 redirect to the specified URL
 func httpbinRedirectTo(res types.Response, params url.Values) ([]byte, string) {
 	targetURL := utils.GetParam("url", params)
-	response := buildTLSFields(res)
-	response["url"] = targetURL
-	return toJSON(response), "application/json"
+	if targetURL == "" {
+		targetURL = "/get"
+	}
+	// Also support status_code parameter for different redirect types
+	statusCode := 302
+	if sc := utils.GetParam("status_code", params); sc != "" {
+		if parsed, err := strconv.Atoi(sc); err == nil && parsed >= 300 && parsed < 400 {
+			statusCode = parsed
+		}
+	}
+
+	// Return special content-type that signals redirect to connection_handler
+	return []byte{}, "redirect:" + strconv.Itoa(statusCode) + ":" + targetURL
 }
 
 // httpbinStatus handles /status/{code}
@@ -643,6 +690,44 @@ func httpbinSSE(res types.Response, params url.Values) ([]byte, string) {
 }
 
 // =============================================================================
+// Stream Endpoint: /stream/{n}
+// =============================================================================
+
+// httpbinStream handles /stream/{n} - returns n newline-delimited JSON objects
+// This is compatible with HTTPBin's /stream endpoint used by CycleTLS tests
+func httpbinStream(res types.Response, params url.Values) ([]byte, string) {
+	// Extract n from path: /stream/5
+	path := res.Path
+	parts := strings.Split(path, "/")
+	n := 3 // default
+	if len(parts) >= 3 {
+		if parsed, err := strconv.Atoi(parts[2]); err == nil && parsed > 0 && parsed <= 100 {
+			n = parsed
+		}
+	}
+
+	ja3Hash := ""
+	if res.TLS != nil {
+		ja3Hash = res.TLS.JA3Hash
+	}
+
+	var buf bytes.Buffer
+	for i := 0; i < n; i++ {
+		data := map[string]interface{}{
+			"id":       i,
+			"ja3_hash": ja3Hash,
+			"origin":   cleanIP(res.IP),
+			"url":      "https://tlsfingerprint.com" + res.Path,
+		}
+		jsonData, _ := json.Marshal(data)
+		buf.Write(jsonData)
+		buf.WriteByte('\n')
+	}
+
+	return buf.Bytes(), "application/json"
+}
+
+// =============================================================================
 // Register all HTTPBin routes
 // =============================================================================
 
@@ -700,6 +785,7 @@ func getDynamicHTTPBinPaths() map[string]func(types.Response, url.Values) ([]byt
 		"/delay/":      httpbinDelay,
 		"/sse":         httpbinSSE,
 		"/sse/":        httpbinSSE,
+		"/stream/":     httpbinStream,
 		"/anything/":   httpbinAnything,
 	}
 }
@@ -726,6 +812,7 @@ func httpbinOpenAPI(res types.Response, params url.Values) ([]byte, string) {
 			{"url": "https://localhost:8443", "description": "Local development"},
 		},
 		"tags": []map[string]string{
+			{"name": "TLS Fingerprinting", "description": "TLS fingerprint and SNI inspection"},
 			{"name": "HTTP Methods", "description": "Testing different HTTP verbs"},
 			{"name": "Request Inspection", "description": "Inspect request details"},
 			{"name": "Compression", "description": "Compressed responses"},
@@ -734,6 +821,7 @@ func httpbinOpenAPI(res types.Response, params url.Values) ([]byte, string) {
 			{"name": "Response Formats", "description": "Different response formats"},
 			{"name": "Redirects", "description": "Redirect operations"},
 			{"name": "Dynamic", "description": "Dynamic response generation"},
+			{"name": "WebSocket", "description": "WebSocket echo endpoint (HTTP/3 only)"},
 		},
 		"paths": buildOpenAPIPaths(),
 	}
@@ -1070,6 +1158,82 @@ func buildOpenAPIPaths() map[string]interface{} {
 				"summary": "Server-Sent Events stream",
 				"responses": map[string]interface{}{
 					"200": map[string]interface{}{"description": "SSE stream"},
+				},
+			},
+		},
+		"/stream/{n}": map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":    []string{"Dynamic"},
+				"summary": "Streams n newline-delimited JSON objects",
+				"parameters": []map[string]interface{}{
+					{"name": "n", "in": "path", "required": true, "schema": map[string]interface{}{"type": "integer", "minimum": 1, "maximum": 100}},
+				},
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{"description": "Newline-delimited JSON objects"},
+				},
+			},
+		},
+		"/ws": map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{"WebSocket"},
+				"summary":     "WebSocket echo endpoint",
+				"description": "Upgrades to WebSocket connection and echoes back any message received. Note: WebSocket is only available over HTTP/3.",
+				"responses": map[string]interface{}{
+					"101": map[string]interface{}{"description": "Switching Protocols - WebSocket connection established"},
+				},
+			},
+		},
+		"/api/sni": map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{"TLS Fingerprinting"},
+				"summary":     "Returns the SNI (Server Name Indication) from TLS handshake",
+				"description": "Extracts and returns the SNI hostname sent during TLS handshake. Useful for verifying SNI override functionality.",
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "SNI information",
+						"content": map[string]interface{}{
+							"application/json": map[string]interface{}{
+								"schema": map[string]interface{}{
+									"type": "object",
+									"properties": map[string]interface{}{
+										"sni":          map[string]string{"type": "string", "description": "Server Name Indication hostname"},
+										"ip":           map[string]string{"type": "string", "description": "Client IP address"},
+										"http_version": map[string]string{"type": "string", "description": "HTTP version (h1, h2, h3)"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"/api/all": map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{"TLS Fingerprinting"},
+				"summary":     "Returns complete TLS fingerprint data",
+				"description": "Returns full TLS fingerprint including JA3, JA4, PeetPrint, Akamai fingerprint, and all extensions",
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{"description": "Complete fingerprint response"},
+				},
+			},
+		},
+		"/api/tls": map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{"TLS Fingerprinting"},
+				"summary":     "Returns TLS-only fingerprint data",
+				"description": "Returns only the TLS fingerprint data (JA3, JA4, extensions) without HTTP details",
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{"description": "TLS fingerprint response"},
+				},
+			},
+		},
+		"/api/clean": map[string]interface{}{
+			"get": map[string]interface{}{
+				"tags":        []string{"TLS Fingerprinting"},
+				"summary":     "Returns clean fingerprint summary",
+				"description": "Returns a minimal fingerprint summary with just the hash values",
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{"description": "Clean fingerprint response"},
 				},
 			},
 		},

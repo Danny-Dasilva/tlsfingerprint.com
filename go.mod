@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	github.com/google/gopacket v1.1.19
+	github.com/gorilla/websocket v1.5.3
 	github.com/quic-go/quic-go v0.54.0
 	github.com/wwhtrbbtt/utls v0.0.0-20220918194152-45ee2a20799c
 	go.mongodb.org/mongo-driver v1.17.1

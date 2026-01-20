@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
@@ -23,6 +24,16 @@ import (
 )
 
 const HTTP2_PREAMBLE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+
+// generateRequestID generates a simple random ID for request tracking
+func generateRequestID() string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 16)
+	for i := range b {
+		b[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(b)
+}
 
 // extractStatusCode extracts HTTP status code from /status/{code} paths
 func extractStatusCode(path string) int {
@@ -249,6 +260,10 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 	// log.Println("Request:", resp.ToJson())
 	// log.Println(len(resp.ToJson()))
 
+	// Track request timing
+	startTime := time.Now()
+	requestID := generateRequestID()
+
 	var isAdmin bool
 	var res []byte
 	var ctype = "text/plain"
@@ -267,10 +282,51 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 		}
 	}
 
+	// Parse special content-type directives
+	var extraHeaders []string
 	statusCode := extractStatusCode(resp.Path)
+
+	// Handle redirect responses: "redirect:STATUS:LOCATION"
+	if strings.HasPrefix(ctype, "redirect:") {
+		parts := strings.SplitN(ctype, ":", 3)
+		if len(parts) >= 3 {
+			if code, err := strconv.Atoi(parts[1]); err == nil {
+				statusCode = code
+			}
+			location := parts[2]
+			extraHeaders = append(extraHeaders, "Location: "+location)
+			ctype = "text/html; charset=utf-8"
+			res = []byte{}
+		}
+	}
+
+	// Handle Set-Cookie responses: "set-cookies:COOKIE1|COOKIE2:ACTUAL_CONTENT_TYPE"
+	if strings.HasPrefix(ctype, "set-cookies:") {
+		parts := strings.SplitN(ctype, ":", 3)
+		if len(parts) >= 3 {
+			cookies := strings.Split(parts[1], "|")
+			for _, cookie := range cookies {
+				extraHeaders = append(extraHeaders, "Set-Cookie: "+cookie)
+			}
+			ctype = parts[2]
+		}
+	}
+
+	// Calculate response time
+	responseTime := time.Since(startTime).Milliseconds()
+
 	res1 := fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, http.StatusText(statusCode))
 	res1 += "Content-Length: " + fmt.Sprintf("%v\r\n", len(res))
 	res1 += "Content-Type: " + ctype + "; charset=utf-8\r\n"
+
+	// Add request tracking headers
+	res1 += "X-Request-Id: " + requestID + "\r\n"
+	res1 += "X-Response-Time: " + fmt.Sprintf("%d\r\n", responseTime)
+
+	// Add extra headers (redirects, cookies)
+	for _, h := range extraHeaders {
+		res1 += h + "\r\n"
+	}
 
 	// Add Content-Encoding header for compression endpoints
 	if strings.HasPrefix(resp.Path, "/gzip") {
@@ -306,6 +362,10 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 
 // https://stackoverflow.com/questions/52002623/golang-tcp-server-how-to-write-http2-data
 func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) {
+	// Track request timing
+	startTime := time.Now()
+	requestID := generateRequestID()
+
 	// make a new framer to encode/decode frames
 	fr := http2.NewFramer(conn, conn)
 	c := make(chan types.ParsedFrame)
@@ -440,7 +500,38 @@ frameLoop:
 		isAdmin = true
 	}
 
+	// Parse special content-type directives
+	var extraHeaders []hpack.HeaderField
 	statusCode := extractStatusCode(path)
+
+	// Handle redirect responses: "redirect:STATUS:LOCATION"
+	if strings.HasPrefix(ctype, "redirect:") {
+		parts := strings.SplitN(ctype, ":", 3)
+		if len(parts) >= 3 {
+			if code, err := strconv.Atoi(parts[1]); err == nil {
+				statusCode = code
+			}
+			location := parts[2]
+			extraHeaders = append(extraHeaders, hpack.HeaderField{Name: "location", Value: location})
+			ctype = "text/html; charset=utf-8"
+			res = []byte{}
+		}
+	}
+
+	// Handle Set-Cookie responses: "set-cookies:COOKIE1|COOKIE2:ACTUAL_CONTENT_TYPE"
+	if strings.HasPrefix(ctype, "set-cookies:") {
+		parts := strings.SplitN(ctype, ":", 3)
+		if len(parts) >= 3 {
+			cookies := strings.Split(parts[1], "|")
+			for _, cookie := range cookies {
+				extraHeaders = append(extraHeaders, hpack.HeaderField{Name: "set-cookie", Value: cookie})
+			}
+			ctype = parts[2]
+		}
+	}
+
+	// Calculate response time
+	responseTime := time.Since(startTime).Milliseconds()
 
 	// Prepare HEADERS
 	hbuf := bytes.NewBuffer([]byte{})
@@ -449,6 +540,15 @@ frameLoop:
 	encoder.WriteField(hpack.HeaderField{Name: "server", Value: "TrackMe.peet.ws"})
 	encoder.WriteField(hpack.HeaderField{Name: "content-length", Value: strconv.Itoa(len(res))})
 	encoder.WriteField(hpack.HeaderField{Name: "content-type", Value: ctype})
+
+	// Add request tracking headers
+	encoder.WriteField(hpack.HeaderField{Name: "x-request-id", Value: requestID})
+	encoder.WriteField(hpack.HeaderField{Name: "x-response-time", Value: strconv.FormatInt(responseTime, 10)})
+
+	// Add extra headers (redirects, cookies)
+	for _, h := range extraHeaders {
+		encoder.WriteField(h)
+	}
 
 	// Add Content-Encoding header for compression endpoints
 	if strings.HasPrefix(path, "/gzip") {
@@ -488,7 +588,13 @@ frameLoop:
 func (srv *Server) HandleHTTP3() http.Handler {
 	mux := http.NewServeMux()
 
+	// WebSocket endpoint - must be registered before the catch-all "/" handler
+	mux.HandleFunc("/ws", HandleWebSocket)
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Track request timing
+		startTime := time.Now()
+		requestID := generateRequestID()
 
 		if h3w, ok := w.(*http3.ResponseWriter); ok {
 			h3c := h3w.Connection()
@@ -530,8 +636,42 @@ func (srv *Server) HandleHTTP3() http.Handler {
 
 			res, ctype := Router(r.URL.Path, resp, srv)
 
+			// Calculate response time
+			responseTime := time.Since(startTime).Milliseconds()
+
+			// Handle redirect responses: "redirect:STATUS:LOCATION"
+			if strings.HasPrefix(ctype, "redirect:") {
+				parts := strings.SplitN(ctype, ":", 3)
+				if len(parts) >= 3 {
+					statusCode := 302
+					if code, err := strconv.Atoi(parts[1]); err == nil {
+						statusCode = code
+					}
+					location := parts[2]
+					w.Header().Set("X-Request-Id", requestID)
+					w.Header().Set("X-Response-Time", strconv.FormatInt(responseTime, 10))
+					w.Header().Set("Location", location)
+					w.WriteHeader(statusCode)
+					return
+				}
+			}
+
+			// Handle Set-Cookie responses: "set-cookies:COOKIE1|COOKIE2:ACTUAL_CONTENT_TYPE"
+			if strings.HasPrefix(ctype, "set-cookies:") {
+				parts := strings.SplitN(ctype, ":", 3)
+				if len(parts) >= 3 {
+					cookies := strings.Split(parts[1], "|")
+					for _, cookie := range cookies {
+						w.Header().Add("Set-Cookie", cookie)
+					}
+					ctype = parts[2]
+				}
+			}
+
 			w.Header().Set("Content-Type", ctype)
 			w.Header().Set("Server", "TrackMe")
+			w.Header().Set("X-Request-Id", requestID)
+			w.Header().Set("X-Response-Time", strconv.FormatInt(responseTime, 10))
 			w.Write([]byte(res))
 		}
 	})
