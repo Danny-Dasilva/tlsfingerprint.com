@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -17,10 +16,8 @@ import (
 	trackmehttp "github.com/pagpeter/trackme/pkg/http"
 	"github.com/pagpeter/trackme/pkg/tls"
 	"github.com/pagpeter/trackme/pkg/types"
-	"github.com/pagpeter/trackme/pkg/utils"
 	utls "github.com/wwhtrbbtt/utls"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/hpack"
 )
 
 const HTTP2_PREAMBLE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
@@ -83,95 +80,6 @@ func parseHTTP1(request []byte) types.Response {
 		Http1: &types.Http1Details{
 			Headers: headers,
 		},
-	}
-}
-
-func parseHTTP2(f *http2.Framer, c chan types.ParsedFrame) {
-	for {
-		frame, err := f.ReadFrame()
-		if err != nil {
-			r := "ERROR_CLOSE"
-			if strings.HasSuffix(err.Error(), "unknown certificate") {
-				r = "ERROR"
-			}
-			// log.Println("Error reading frame", err, r)
-			c <- types.ParsedFrame{Type: r}
-			return
-		}
-
-		p := types.ParsedFrame{}
-		p.Type = frame.Header().Type.String()
-		p.Stream = frame.Header().StreamID
-		p.Length = frame.Header().Length
-		p.Flags = utils.GetAllFlags(frame)
-
-		switch frame := frame.(type) {
-		case *http2.SettingsFrame:
-			p.Settings = []string{}
-			frame.ForeachSetting(func(s http2.Setting) error {
-				setting := fmt.Sprintf("%q", s)
-				setting = strings.Replace(setting, "\"", "", -1)
-				setting = strings.Replace(setting, "[", "", -1)
-				setting = strings.Replace(setting, "]", "", -1)
-
-				// SETTINGS_NO_RFC7540_PRIORITIES
-				// https://www.rfc-editor.org/rfc/rfc9218.html#section-2.1
-				// https://github.com/golang/go/issues/69917
-				// TODO: when net/http2 is updated to support it, remove this as it won't be needed (this is ugly code too)
-				if strings.HasPrefix(setting, "UNKNOWN_SETTING_9 = ") {
-					setting = strings.ReplaceAll(setting, "UNKNOWN_SETTING_9", "NO_RFC7540_PRIORITIES")
-				}
-
-				p.Settings = append(p.Settings, setting)
-				return nil
-			})
-		case *http2.HeadersFrame:
-			d := hpack.NewDecoder(4096, func(hf hpack.HeaderField) {})
-			d.SetEmitEnabled(true)
-			h2Headers, err := d.DecodeFull(frame.HeaderBlockFragment())
-			if err != nil {
-				//log.Println("Error decoding headers", err)
-				return
-			}
-
-			for _, h := range h2Headers {
-				h := fmt.Sprintf("%q: %q", h.Name, h.Value)
-				h = strings.Trim(h, "\"")
-				h = strings.Replace(h, "\": \"", ": ", -1)
-				p.Headers = append(p.Headers, h)
-			}
-			if frame.HasPriority() {
-				prio := types.Priority{}
-				p.Priority = &prio
-				// 6.2: Weight: An 8-bit weight for the stream; Add one to the value to obtain a weight between 1 and 256
-				p.Priority.Weight = int(frame.Priority.Weight) + 1
-				p.Priority.DependsOn = int(frame.Priority.StreamDep)
-				if frame.Priority.Exclusive {
-					p.Priority.Exclusive = 1
-				}
-			}
-		case *http2.DataFrame:
-			p.Payload = frame.Data()
-		case *http2.WindowUpdateFrame:
-			p.Increment = frame.Increment
-		case *http2.PriorityFrame:
-
-			prio := types.Priority{}
-			p.Priority = &prio
-			// 6.3: Weight: An 8-bit weight for the stream; Add one to the value to obtain a weight between 1 and 256
-			p.Priority.Weight = int(frame.PriorityParam.Weight) + 1
-			p.Priority.DependsOn = int(frame.PriorityParam.StreamDep)
-			if frame.PriorityParam.Exclusive {
-				p.Priority.Exclusive = 1
-			}
-		case *http2.GoAwayFrame:
-			p.GoAway = &types.GoAway{}
-			p.GoAway.LastStreamID = frame.LastStreamID
-			p.GoAway.ErrCode = uint32(frame.ErrCode)
-			p.GoAway.DebugData = frame.DebugData()
-		}
-
-		c <- p
 	}
 }
 
@@ -353,6 +261,7 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 		log.Println("Error writing HTTP/1 data", err)
 		return
 	}
+
 	err = conn.Close()
 	if err != nil {
 		log.Println("Error closing HTTP/1 connection", err)
@@ -362,15 +271,10 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 
 // https://stackoverflow.com/questions/52002623/golang-tcp-server-how-to-write-http2-data
 func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) {
-	// Track request timing
-	startTime := time.Now()
-	requestID := generateRequestID()
-
-	// make a new framer to encode/decode frames
 	fr := http2.NewFramer(conn, conn)
-	c := make(chan types.ParsedFrame)
-	var frames []types.ParsedFrame
+	h2conn := NewHTTP2Connection(conn, fr, tlsFingerprint, srv)
 
+	// Send initial SETTINGS
 	// Same settings that google uses
 	err := fr.WriteSettings(
 		http2.Setting{
@@ -384,204 +288,15 @@ func (srv *Server) handleHTTP2(conn net.Conn, tlsFingerprint *types.TLSDetails) 
 		},
 	)
 	if err != nil {
-		log.Println(err)
+		log.Println("Failed to write settings:", err)
 		return
 	}
 
-	var frame types.ParsedFrame
-	var headerFrame types.ParsedFrame
-	var isAdmin bool
-	var headersReceived bool
+	// Start idle timeout goroutine
+	go h2conn.idleTimeoutLoop()
 
-	go parseHTTP2(fr, c)
-
-	// Timeout for waiting for frames after HEADERS received
-	bodyTimeout := time.NewTimer(5 * time.Second)
-	bodyTimeout.Stop() // Don't start until we receive HEADERS
-
-frameLoop:
-	for {
-		select {
-		case frame = <-c:
-			if frame.Type == "ERROR_CLOSE" {
-				bodyTimeout.Stop()
-				err = conn.Close()
-				if err != nil {
-					log.Println("Cant close connection", err)
-				}
-				return
-			} else if frame.Type == "ERROR" {
-				bodyTimeout.Stop()
-				return
-			}
-			// log.Println(frame)
-			frames = append(frames, frame)
-			if frame.Type == "HEADERS" {
-				headerFrame = frame
-				headersReceived = true
-				// Check if HEADERS frame has EndStream flag (no body)
-				for _, flag := range frame.Flags {
-					if flag == "EndStream (0x1)" {
-						break frameLoop
-					}
-				}
-				// HEADERS without EndStream means body may follow - start timeout
-				bodyTimeout.Reset(2 * time.Second)
-			}
-			// Check for EndStream on any frame (typically DATA frame)
-			for _, flag := range frame.Flags {
-				if flag == "EndStream (0x1)" {
-					break frameLoop
-				}
-			}
-		case <-bodyTimeout.C:
-			// Timeout waiting for body/EndStream after HEADERS received
-			// Proceed with what we have if we got HEADERS
-			if headersReceived {
-				break frameLoop
-			}
-		}
-	}
-	bodyTimeout.Stop()
-
-	// get method, path and user-agent from the header frame
-	var path string
-	var method string
-	var userAgent string
-	key, isKeySet := srv.GetAdmin()
-
-	for _, h := range headerFrame.Headers {
-		if strings.HasPrefix(h, ":method") {
-			method = strings.Split(h, ": ")[1]
-		}
-		if strings.HasPrefix(h, ":path") {
-			path = strings.Split(h, ": ")[1]
-		}
-		if strings.HasPrefix(h, "user-agent") {
-			userAgent = strings.Split(h, ": ")[1]
-		}
-		if isKeySet && strings.HasPrefix(h, key) {
-			isAdmin = true
-		}
-	}
-
-	resp := types.Response{
-		IP:          conn.RemoteAddr().String(),
-		HTTPVersion: "h2",
-		Path:        path,
-		Method:      method,
-		UserAgent:   userAgent,
-		Http2: &types.Http2Details{
-			SendFrames:            frames,
-			AkamaiFingerprint:     trackmehttp.GetAkamaiFingerprint(frames),
-			AkamaiFingerprintHash: utils.GetMD5Hash(trackmehttp.GetAkamaiFingerprint(frames)),
-		},
-		TLS: tlsFingerprint,
-	}
-
-	// Calculate JA4H for HTTP/2
-	if resp.Http2 != nil && resp.TLS != nil {
-		// Extract headers from HTTP/2 frames
-		h2Headers := []string{}
-		for _, frame := range frames {
-			if frame.Type == "HEADERS" {
-				h2Headers = append(h2Headers, frame.Headers...)
-			}
-		}
-		resp.TLS.JA4H = trackmehttp.CalculateJA4H(resp.Method, resp.HTTPVersion, h2Headers)
-		resp.TLS.JA4H_r = trackmehttp.CalculateJA4H_r(resp.Method, resp.HTTPVersion, h2Headers)
-	}
-
-	var res []byte
-	var ctype = "text/plain"
-	if method != "OPTIONS" {
-		res, ctype = Router(path, resp, srv)
-	} else {
-		isAdmin = true
-	}
-
-	// Parse special content-type directives
-	var extraHeaders []hpack.HeaderField
-	statusCode := extractStatusCode(path)
-
-	// Handle redirect responses: "redirect:STATUS:LOCATION"
-	if strings.HasPrefix(ctype, "redirect:") {
-		parts := strings.SplitN(ctype, ":", 3)
-		if len(parts) >= 3 {
-			if code, err := strconv.Atoi(parts[1]); err == nil {
-				statusCode = code
-			}
-			location := parts[2]
-			extraHeaders = append(extraHeaders, hpack.HeaderField{Name: "location", Value: location})
-			ctype = "text/html; charset=utf-8"
-			res = []byte{}
-		}
-	}
-
-	// Handle Set-Cookie responses: "set-cookies:COOKIE1|COOKIE2:ACTUAL_CONTENT_TYPE"
-	if strings.HasPrefix(ctype, "set-cookies:") {
-		parts := strings.SplitN(ctype, ":", 3)
-		if len(parts) >= 3 {
-			cookies := strings.Split(parts[1], "|")
-			for _, cookie := range cookies {
-				extraHeaders = append(extraHeaders, hpack.HeaderField{Name: "set-cookie", Value: cookie})
-			}
-			ctype = parts[2]
-		}
-	}
-
-	// Calculate response time
-	responseTime := time.Since(startTime).Milliseconds()
-
-	// Prepare HEADERS
-	hbuf := bytes.NewBuffer([]byte{})
-	encoder := hpack.NewEncoder(hbuf)
-	encoder.WriteField(hpack.HeaderField{Name: ":status", Value: strconv.Itoa(statusCode)})
-	encoder.WriteField(hpack.HeaderField{Name: "server", Value: "TrackMe.peet.ws"})
-	encoder.WriteField(hpack.HeaderField{Name: "content-length", Value: strconv.Itoa(len(res))})
-	encoder.WriteField(hpack.HeaderField{Name: "content-type", Value: ctype})
-
-	// Add request tracking headers
-	encoder.WriteField(hpack.HeaderField{Name: "x-request-id", Value: requestID})
-	encoder.WriteField(hpack.HeaderField{Name: "x-response-time", Value: strconv.FormatInt(responseTime, 10)})
-
-	// Add extra headers (redirects, cookies)
-	for _, h := range extraHeaders {
-		encoder.WriteField(h)
-	}
-
-	// Add Content-Encoding header for compression endpoints
-	if strings.HasPrefix(path, "/gzip") {
-		encoder.WriteField(hpack.HeaderField{Name: "content-encoding", Value: "gzip"})
-	} else if strings.HasPrefix(path, "/deflate") {
-		encoder.WriteField(hpack.HeaderField{Name: "content-encoding", Value: "deflate"})
-	} else if strings.HasPrefix(path, "/brotli") {
-		encoder.WriteField(hpack.HeaderField{Name: "content-encoding", Value: "br"})
-	}
-
-	encoder.WriteField(hpack.HeaderField{Name: "alt-svc", Value: "h3=\":443\"; ma=86400"})
-	if isAdmin {
-		encoder.WriteField(hpack.HeaderField{Name: "access-control-allow-origin", Value: "*"})
-		encoder.WriteField(hpack.HeaderField{Name: "access-control-allow-methods", Value: "*"})
-		encoder.WriteField(hpack.HeaderField{Name: "access-control-allow-headers", Value: "*"})
-	}
-
-	// Write HEADERS frame
-	err = fr.WriteHeaders(http2.HeadersFrameParam{StreamID: headerFrame.Stream, BlockFragment: hbuf.Bytes(), EndHeaders: true})
-	if err != nil {
-		log.Println("could not write headers: ", err)
-		return
-	}
-
-	chunks := utils.SplitBytesIntoChunks(res, 1024)
-	for _, c := range chunks {
-		fr.WriteData(headerFrame.Stream, false, c)
-	}
-	fr.WriteData(headerFrame.Stream, true, []byte{})
-	fr.WriteGoAway(headerFrame.Stream, http2.ErrCodeNo, []byte{})
-
-	time.Sleep(time.Millisecond * 500)
-	conn.Close()
+	// Main frame processing loop
+	h2conn.processFrames()
 }
 
 // HandleHTTP3 handles HTTP/3 requests and returns a simple "Hello, World!" response

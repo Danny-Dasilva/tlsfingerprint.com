@@ -1,0 +1,29 @@
+{
+  "log_to_db": false,
+  "tls_port": "8443",
+  "http_port": "8080",
+  "cert_file": "certs/chain.pem",
+  "key_file": "certs/key.pem",
+  "host": "0.0.0.0",
+  "http_redirect": "https://localhost:8443",
+  "mongo_url": "",
+  "mongo_database": "TrackMe",
+  "mongo_collection": "requests",
+  "mongo_log_ips": false,
+  "device": "",
+  "cors_key": "X-CORS"
+}
+
+2026/01/21 12:07:21 Starting server...
+2026/01/21 12:07:21 Listening on 0.0.0.0:8443
+2026/01/21 12:07:21 Starting Redirect Server: https://localhost:8443
+2026/01/21 12:07:21 Listening on 0.0.0.0:8080
+2026/01/21 12:07:21 Starting HTTP/3 server on 0.0.0.0:8443
+[2026-01-21 12:07:29] ::1]:56145 GET h2 /redirect/1 e1d8b04eeb8ef3954ec4f49267a783ef
+[2026-01-21 12:07:29] ::1]:56145 GET h2 /redirect/1 -
+[2026-01-21 12:07:38] ::1]:56228 GET h2 /get e1d8b04eeb8ef3954ec4f49267a783ef
+[2026-01-21 12:07:38] ::1]:56228 GET h2 /get -
+[2026-01-21 12:07:46] ::1]:56309 GET h2 /redirect/1 e1d8b04eeb8ef3954ec4f49267a783ef
+[2026-01-21 12:07:46] ::1]:56309 GET h2 /redirect/1 -
+[2026-01-21 12:07:54] ::1]:56395 GET h2 /redirect-to?url=https://localhost:8443/get 375c6162a492dfbf2795909110ce8424
+[2026-01-21 12:07:54] ::1]:56395 GET h2 /redirect-to?url=https://localhost:8443/get -

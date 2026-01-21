@@ -88,7 +88,7 @@ func redirect(w http.ResponseWriter, r *http.Request) {
 func StartRedirectServer(host, port string) {
 	// Starts an HTTP server on port 80 that redirects to the HTTPS server on port 443
 
-	local = host == "" && port != "443"
+	local = (host == "" || host == "0.0.0.0" || host == "localhost") && port != "443"
 	srv.SetLocal(local)
 
 	log.Println("Starting Redirect Server:", srv.GetConfig().HTTPRedirect)

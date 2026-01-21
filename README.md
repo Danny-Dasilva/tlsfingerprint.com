@@ -148,6 +148,48 @@ docker compose up --build
 - Mount `certs/`, `config.json`, and `blockedIPs` into the container.
 - Ensure `http_redirect` points at your public HTTPS URL.
 
+### TLS certs (Let's Encrypt)
+
+If you want browser-trusted TLS (no warnings), use a public CA cert (e.g. Let's Encrypt):
+
+- Set Cloudflare to DNS-only (grey cloud) for the hostname, otherwise Cloudflare terminates TLS and you won't see real client fingerprints.
+- Copy real cert files into `certs/chain.pem` and `certs/key.pem` (avoid symlinks; the container mount won't follow them).
+
+Example for Container-Optimized OS using Docker-only certbot:
+
+```bash
+DOMAIN=tlsfingerprint.com
+EMAIL=you@example.com
+LE_BASE=/var/lib/tlsfingerprint/letsencrypt
+CERT_DIR=/var/lib/tlsfingerprint/certs
+
+docker stop tlsfingerprint || true
+docker rm tlsfingerprint || true
+
+docker run --rm -p 80:80 \
+  -v "$LE_BASE:/etc/letsencrypt" \
+  -v "$LE_BASE/lib:/var/lib/letsencrypt" \
+  -v "$LE_BASE/log:/var/log/letsencrypt" \
+  certbot/certbot certonly --standalone -d "$DOMAIN" \
+  --agree-tos -m "$EMAIL" --non-interactive
+
+cp -f "$LE_BASE/live/$DOMAIN/fullchain.pem" "$CERT_DIR/chain.pem"
+cp -f "$LE_BASE/live/$DOMAIN/privkey.pem" "$CERT_DIR/key.pem"
+chmod 600 "$CERT_DIR/key.pem"
+
+docker start tlsfingerprint
+```
+
+For renewals, rerun certbot and re-copy the files, then restart the container. If you issued a cert without an email, you can add one later with:
+
+```bash
+docker run --rm \
+  -v "$LE_BASE:/etc/letsencrypt" \
+  -v "$LE_BASE/lib:/var/lib/letsencrypt" \
+  -v "$LE_BASE/log:/var/log/letsencrypt" \
+  certbot/certbot update_account -m "$EMAIL" --agree-tos -n
+```
+
 ## TLS & HTTP2 fingerprinting resources
 
 - [TLS 1.3, every byte explained](https://tls13.xargs.org/)
