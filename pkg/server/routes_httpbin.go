@@ -530,11 +530,13 @@ func httpbinRedirect(res types.Response, params url.Values) ([]byte, string) {
 		}
 	}
 
+	// Use absolute URLs for redirects (some HTTP/2 clients have issues with relative URLs)
+	baseURL := "https://tlsfingerprint.com"
 	var location string
 	if n > 1 {
-		location = "/redirect/" + strconv.Itoa(n-1)
+		location = baseURL + "/redirect/" + strconv.Itoa(n-1)
 	} else {
-		location = "/get"
+		location = baseURL + "/get"
 	}
 
 	// Return special content-type that signals redirect to connection_handler
@@ -547,7 +549,10 @@ func httpbinRedirect(res types.Response, params url.Values) ([]byte, string) {
 func httpbinRedirectTo(res types.Response, params url.Values) ([]byte, string) {
 	targetURL := utils.GetParam("url", params)
 	if targetURL == "" {
-		targetURL = "/get"
+		targetURL = "https://tlsfingerprint.com/get"
+	} else if strings.HasPrefix(targetURL, "/") {
+		// Convert relative URLs to absolute
+		targetURL = "https://tlsfingerprint.com" + targetURL
 	}
 	// Also support status_code parameter for different redirect types
 	statusCode := 302
