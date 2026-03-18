@@ -15,3 +15,5 @@ cmd/cmd
 tmp
 .claude/
 thoughts/
+.tldr/
+.tldrignore

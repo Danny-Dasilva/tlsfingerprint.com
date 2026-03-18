@@ -182,7 +182,7 @@ func (srv *Server) respondToHTTP1(conn net.Conn, resp types.Response) {
 	}
 
 	key, isKeySet := srv.GetAdmin()
-	if isKeySet {
+	if isKeySet && resp.Http1 != nil {
 		for _, a := range resp.Http1.Headers {
 			if strings.HasPrefix(a, key) {
 				isAdmin = true
