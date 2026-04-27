@@ -1,0 +1,8 @@
+project = "scrolller"
+region  = "us-central1"
+zone    = "us-central1-a"
+name    = "tlsfingerprint"
+
+# Optional overrides:
+# machine_type = "e2-small"
+# disk_size_gb = 20

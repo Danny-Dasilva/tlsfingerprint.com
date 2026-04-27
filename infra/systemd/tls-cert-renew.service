@@ -1,0 +1,11 @@
+[Unit]
+Description=Renew tlsfingerprint.com TLS certificate
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# /var/lib is mounted noexec on COS — invoke bash on the script as data.
+ExecStart=/bin/bash /var/lib/tlsfingerprint/renew-cert.sh
+StandardOutput=append:/var/log/tls-renew.log
+StandardError=append:/var/log/tls-renew.log

@@ -142,6 +142,10 @@ docker compose up --build
 
 ## Deployment checklist
 
+For a fresh GCP server, see [`infra/`](./infra/) — Terraform + a single
+bootstrap script handle the VM, firewall, initial cert, container, and
+auto-renewing systemd timer.
+
 - Open TCP ports `80` and `443`, plus UDP port `443` for HTTP/3.
 - Run with `NET_RAW`/`NET_ADMIN` (or root) if you need packet sniffing.
 - Set `device` in `config.json` to the host interface you want to sniff (for example `eth0`).
